@@ -1,0 +1,23 @@
+BAG:test1 remove Găng Hủy Diệt lydo: Mặc vào người at 01/23/2024 12:02 AM
+BAG:test1 remove 1xHộp bánh Trung Thu lydo: Ăn bánh tt buff at 01/23/2024 12:23 AM
+BAG:test1 remove 1xPháo hoa lydo: CSTT at 01/23/2024 12:26 AM
+BAG:test1 remove 1xPháo hoa lydo: CSTT at 01/23/2024 12:26 AM
+BAG:test1 remove 1xPháo hoa lydo: CSTT at 01/23/2024 12:26 AM
+BAG:test1 remove 1xPháo hoa lydo: CSTT at 01/23/2024 12:26 AM
+BAG:test1 remove Giáp tập luyện cấp 3 lydo: Mặc vào người at 01/23/2024 12:32 AM
+BAG:test1 remove 1xCuồng nộ lydo: Dùng buff at 01/23/2024 12:35 AM
+BAG:test1 remove 1xNgọc Rồng 1 sao lydo: Gọi rồng at 01/23/2024 12:40 AM
+BAG:test1 remove 1xNgọc Rồng 2 sao lydo: Gọi rồng at 01/23/2024 12:40 AM
+BAG:test1 remove 1xNgọc Rồng 3 sao lydo: Gọi rồng at 01/23/2024 12:40 AM
+BAG:test1 remove 1xNgọc Rồng 4 sao lydo: Gọi rồng at 01/23/2024 12:40 AM
+BAG:test1 remove 1xNgọc Rồng 5 sao lydo: Gọi rồng at 01/23/2024 12:40 AM
+BAG:test1 remove 1xNgọc Rồng 6 sao lydo: Gọi rồng at 01/23/2024 12:40 AM
+BAG:test1 remove 1xNgọc Rồng 7 sao lydo: Gọi rồng at 01/23/2024 12:40 AM
+BAG:test1 remove 1xBí ngô 1 sao lydo: Gọi rồng at 01/23/2024 12:40 AM
+BAG:test1 remove 1xBí ngô 2 sao lydo: Gọi rồng at 01/23/2024 12:40 AM
+BAG:test1 remove 1xBí ngô 3 sao lydo: Gọi rồng at 01/23/2024 12:40 AM
+BAG:test1 remove 1xBí ngô 4 sao lydo: Gọi rồng at 01/23/2024 12:40 AM
+BAG:test1 remove 1xBí ngô 5 sao lydo: Gọi rồng at 01/23/2024 12:40 AM
+BAG:test1 remove 1xBí ngô 6 sao lydo: Gọi rồng at 01/23/2024 12:40 AM
+BAG:test1 remove 1xBí ngô 7 sao lydo: Gọi rồng at 01/23/2024 12:40 AM
+BAG:test1 remove Giáp tập luyện cấp 3 lydo: Mặc vào người at 01/23/2024 12:47 AM

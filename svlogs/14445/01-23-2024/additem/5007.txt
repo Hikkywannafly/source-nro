@@ -1,0 +1,20 @@
+BAG:Hoàng M2i add 1xBom hi sinh lv1 lydo: Mua từ cửa hàng at 01/23/2024 12:37 PM
+BAG:Hoàng M2i add 1xBom hi sinh lv2 lydo: Mua từ cửa hàng at 01/23/2024 12:38 PM
+BAG:Hoàng M2i add 1xBom hi sinh lv3 lydo: Mua từ cửa hàng at 01/23/2024 12:38 PM
+BAG:Hoàng M2i add 1xBom hi sinh lv4 lydo: Mua từ cửa hàng at 01/23/2024 12:38 PM
+BAG:Hoàng M2i add 1xBom hi sinh lv5 lydo: Mua từ cửa hàng at 01/23/2024 12:38 PM
+BAG:Hoàng M2i add 1xBom hi sinh lv6 lydo: Mua từ cửa hàng at 01/23/2024 12:38 PM
+BAG:Hoàng M2i add 1xBom hi sinh lv7 lydo: Mua từ cửa hàng at 01/23/2024 12:38 PM
+BAG:Hoàng M2i add 1xSách Antomic lv2 lydo: Mua từ cửa hàng at 01/23/2024 12:38 PM
+BAG:Hoàng M2i add 1xHóa khỉ khổng lồ lv1 lydo: Mua từ cửa hàng at 01/23/2024 12:38 PM
+BAG:Hoàng M2i add 1xHóa khỉ khổng lồ lv2 lydo: Mua từ cửa hàng at 01/23/2024 12:38 PM
+BAG:Hoàng M2i add 1xÁo thun dày lydo: buff at 01/23/2024 12:41 PM
+BAG:Hoàng M2i add 1xSách Kamejoko lv7 lydo: buff at 01/23/2024 12:41 PM
+BAG:Hoàng M2i add 1xQuần vải thô lydo: Lấy từ body vào hành trang at 01/23/2024 5:40 PM
+BAG:Hoàng M2i add 1xÁo vải thô lydo: Lấy từ body vào hành trang at 01/23/2024 5:40 PM
+BAG:Hoàng M2i add 7xĐậu thần cấp 2 lydo: Thu hoạch đậu at 01/23/2024 5:41 PM
+BAG:Hoàng M2i add 3xĐậu thần cấp 4 lydo: Thu hoạch đậu at 01/23/2024 5:41 PM
+BAG:Hoàng M2i add 1xÁo vải thô lydo: Lấy từ body đệ vào hành trang at 01/23/2024 5:41 PM
+BAG:Hoàng M2i add 1xQuần vải thô lydo: Lấy từ body đệ vào hành trang at 01/23/2024 5:41 PM
+BAG:Hoàng M2i add 1xĐá Ruby lydo: Nhặt từ map at 01/23/2024 6:04 PM
+BAG:Hoàng M2i add 1xMảnh Quỷ đất lydo: Nhặt từ map at 01/23/2024 6:04 PM

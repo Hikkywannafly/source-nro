@@ -38,7 +38,7 @@ namespace NRO_Server.Application.Handlers.Skill
                 var status = message.Reader.ReadByte();
                 //Get skill
                 var skillCharFocus = character.Skills.FirstOrDefault(skl => skl.Id == character.InfoChar.CSkill);
-                if(skillCharFocus == null) return;
+                if (skillCharFocus == null) return;
                 var skillTemplate = Cache.Gi().SKILL_TEMPLATES.FirstOrDefault(skl => skl.Id == skillCharFocus.Id);
                 var skillData =
                     skillTemplate?.SkillDataTemplates.FirstOrDefault(skl => skl.SkillId == skillCharFocus.SkillId);
@@ -54,8 +54,8 @@ namespace NRO_Server.Application.Handlers.Skill
                 var manaChar = character.InfoChar.Mp;
                 manaUse = manaUseType switch
                 {
-                    1 => manaUse * (int) character.MpFull / 100,
-                    2 => (int) manaChar,
+                    1 => manaUse * (int)character.MpFull / 100,
+                    2 => (int)manaChar,
                     _ => manaUse
                 };
 
@@ -70,421 +70,422 @@ namespace NRO_Server.Application.Handlers.Skill
                 {
                     //Start Choáng
                     case 0:
-                    {
-                        if(character.InfoChar.Gender != 0 || manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
-                        // Nội tại thái dương hạ san
-
-                        var charRel = (Model.Character.Character)character;
-                        if (charRel.SpecialSkill.Id != -1 && charRel.SpecialSkill.SkillId == 6) //Đã có nội tại
                         {
-                            manaUse += charRel.SpecialSkill.Value;
-                            character.CharacterHandler.MineMp(manaUse);
+                            if (character.InfoChar.Gender != 0 || manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
+                            // Nội tại thái dương hạ san
 
-                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                            skillCharFocus.CoolDown -= skillData.CoolDown*charRel.SpecialSkill.Value/100;
-
-                            if (skillCharFocus.CoolDown < 0)
+                            var charRel = (Model.Character.Character)character;
+                            if (charRel.SpecialSkill.Id != -1 && charRel.SpecialSkill.SkillId == 6) //Đã có nội tại
                             {
-                                skillCharFocus.CoolDown = 500;
-                            }
-                        }
-                        else 
-                        {
-                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                            character.CharacterHandler.MineMp(manaUse);
-                        }
-
-
-                        var monsters = new List<IMonster>();
-                        var characters = new List<ICharacter>();
-
-                        int time = DataCache.TimeStun[skillData.Point];
-                        
-                        if (character.InfoSet.IsFullSetThienXinHang)
-                        {
-                            time*=2;
-                        }
-
-                        lock (zone.MonsterMaps)
-                        {
-                            foreach (var monsterMap in zone.MonsterMaps.Where(m => m is {IsDie: false}))
-                            {
-                                lock (monsterMap.InfoSkill.ThaiDuongHanSan)
-                                {
-                                    monsterMap.InfoSkill.ThaiDuongHanSan.IsStun = true;
-                                    monsterMap.InfoSkill.ThaiDuongHanSan.Time = time*1000 + timeServer;
-                                    monsterMap.InfoSkill.ThaiDuongHanSan.TimeReal = time;
-                                    character.Zone.ZoneHandler.SendMessage(Service.SkillEffectMonster(character.Id, monsterMap.IdMap, 1, 40));
-                                }
-                                monsterMap.IsDontMove = true;
-                                character.Zone.ZoneHandler.SendMessage(Service.MonsterDontMove(monsterMap.IdMap, true));
-                                monsters.Add(monsterMap); 
-                            } 
-                        }
-                        
-                        if (character.Flag != 0 || (charRel.Test != null && charRel.Test.IsTest) || charRel.InfoChar.TypePk == 3)
-                        {
-                            lock (zone.Characters)
-                            {
-                                foreach (var real in zone.Characters.Values.Where(c => c != null && c.Id != character.Id && !c.InfoChar.IsDie))
-                                {
-                                    if (real.InfoChar.TypePk != 3 && real.Flag != 8 &&
-                                        (real.Flag == 0 || real.Flag == character.Flag) &&
-                                        (!real.Test.IsTest || real.Test.TestCharacterId != character.Id)) continue;
-                                    lock (real.InfoSkill.ThaiDuongHanSan)
-                                    {
-                                        var timeReal = time;
-                                        //Cải trang Giảm thời gian choáng
-                                        if (true) timeReal -= 0;
-                                        real.InfoSkill.ThaiDuongHanSan.IsStun = true;
-                                        real.InfoSkill.ThaiDuongHanSan.Time = timeReal*1000 + timeServer;
-                                        real.InfoSkill.ThaiDuongHanSan.TimeReal = timeReal;
-
-                                        zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, real.Id, 1, 40));
-                                        zone.ZoneHandler.SendMessage(Service.PublicChat(real.Id, TextServer.gI().SKILL_BLIND[ServerUtils.RandomNumber(TextServer.gI().SKILL_BLIND.Count)]));
-                                    }
-                                    characters.Add(real);
-                                }
-                            }
-
-                            lock (zone.Disciples)
-                            {
-                                foreach (var real in zone.Disciples.Values.Where(c => c != null && (c.Id + character.Id) != 0 && !c.InfoChar.IsDie))
-                                {
-                                    if (real.Character.InfoChar.TypePk != 3 && real.Character.Flag != 8 &&
-                                        (real.Character.Flag == 0 || real.Character.Flag == character.Flag) &&
-                                        (!real.Character.Test.IsTest || real.Character.Test.TestCharacterId != character.Id)) continue;
-                                    lock (real.InfoSkill.ThaiDuongHanSan)
-                                    {
-                                        var timeReal = time;
-                                        //Cải trang Giảm thời gian choáng
-                                        if (true) timeReal -= 0;
-                                        real.InfoSkill.ThaiDuongHanSan.IsStun = true;
-                                        real.InfoSkill.ThaiDuongHanSan.Time = timeReal*1000 + timeServer;
-                                        real.InfoSkill.ThaiDuongHanSan.TimeReal = timeReal;
-
-                                        zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, real.Id, 1, 40));
-                                        zone.ZoneHandler.SendMessage(Service.PublicChat(real.Id, TextServer.gI().SKILL_BLIND[ServerUtils.RandomNumber(TextServer.gI().SKILL_BLIND.Count)]));
-                                    }
-                                    characters.Add(real);
-                                }
-                            }
-                        }
-
-                        lock (zone.Bosses)
-                        {
-                            foreach (var real in zone.Bosses.Values.Where(c => c != null && c.Id != character.Id && !c.InfoChar.IsDie))
-                            {
-                                lock (real.InfoSkill.ThaiDuongHanSan)
-                                {
-                                    var timeReal = time/2;
-                                    real.InfoSkill.ThaiDuongHanSan.IsStun = true;
-                                    real.InfoSkill.ThaiDuongHanSan.Time = timeReal*1000 + timeServer;
-                                    real.InfoSkill.ThaiDuongHanSan.TimeReal = timeReal;
-
-                                    zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, real.Id, 1, 40));
-                                    zone.ZoneHandler.SendMessage(Service.PublicChat(real.Id, TextServer.gI().SKILL_BLIND[ServerUtils.RandomNumber(TextServer.gI().SKILL_BLIND.Count)]));
-                                }
-                                characters.Add(real);
-                            }
-                        }
-                        
-                        zone.ZoneHandler.SendMessage(Service.SkillNotFocus0(character.Id, skillData.SkillId, characters, monsters));
-                        break;
-                    }
-                    //START Dùng skill tái tạo năng lượng
-                    case 1:
-                    {
-                        if(character.InfoChar.Gender != 2 || skillCharFocus.CoolDown > timeServer) return;
-                        zone.ZoneHandler.SendMessage(Service.SkillNotFocus1(character.Id, skillData.SkillId));
-                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                        character.InfoSkill.TaiTaoNangLuong.IsTTNL = true;
-                        character.InfoSkill.TaiTaoNangLuong.DelayTTNL = 20000 + timeServer;
-                        break;
-                    }
-                    //DOING Xử lý tái tạo năng lượng
-                    case 2:
-                    {
-                        if(character.InfoChar.Gender != 2) return;
-                        var hpFull = character.HpFull;
-                        var mpFull = character.MpFull;
-                        var hpNow = character.InfoChar.Hp;
-                        var mpNow = character.InfoChar.Mp;
-                        var percentHp = (int)((hpFull- hpNow)*100/character.HpFull);
-                        var percentMp = (int)((mpFull - mpNow)*100/character.HpFull);
-                        if(percentHp > 30 || percentMp > 30) {
-                            zone.ZoneHandler.SendMessage(Service.PublicChat(character.Id, $"Tái tạo năng lượng: {(percentHp > percentMp ? percentHp : percentMp)}%"));
-                        }
-
-                        if (hpNow < hpFull)
-                        {
-                            character.CharacterHandler.PlusHp((int)(skillData.Damage * hpFull / 100));
-                            zone.ZoneHandler.SendMessage(Service.PlayerLevel(character));
-                        }
-
-                        if (mpNow < mpFull)
-                        {
-                            character.CharacterHandler.PlusMp((int)(skillData.Damage * mpFull / 100));
-                        }
-
-                        if (character.InfoSkill.TaiTaoNangLuong.IsTTNL && character.InfoSkill.TaiTaoNangLuong.Crit <= 0)
-                        {
-                            character.InfoSkill.TaiTaoNangLuong.Crit = ServerUtils.RandomNumber(3);
-                        }
-
-                        if (character.InfoChar.Hp == hpFull && character.InfoChar.Mp == mpFull)
-                        {
-                            RemoveTTNL(character, skillTemplate.Id);
-                        }
-                        break;
-                    }
-                    //STOP Dừng tái tạo năng lượng
-                    case 3:
-                    {
-                        if(character.InfoChar.Gender != 2) return;
-                        RemoveTTNL(character, skillTemplate.Id);
-                        break;
-                    }
-                    //QCKK + LAZE
-                    case 4:
-                    {
-                        switch (character.InfoChar.Gender)
-                        {
-                            //QCKK
-                            case 0:
-                            {
-                                Server.Gi().Logger.Debug($"Check skill ------------------------- manause: {manaUse} ------ manaChar: {manaChar}");
-                                if (manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
-                                character.InfoSkill.Qckk.Time = 3000 + timeServer;
-                                character.CharacterHandler.SendZoneMessage(Service.SkillNotFocus4(character.Id, skillData.SkillId, 5000));
-
-                                var task = new Task(() =>
-                                {
-                                    while (character.InfoSkill.Qckk.Time > ServerUtils.CurrentTimeMillis() && !character.InfoChar.IsDie)
-                                    {
-                                        foreach (var c in zone.Characters.Values.Where(c => c != null && !c.InfoChar.IsDie && c.Id != character.Id))
-                                        {
-                                            if (Math.Abs(c.InfoChar.X - character.InfoChar.X) > skillData.Dx) continue;
-                                            character.InfoSkill.Qckk.ListId.Clear();
-                                            if(!character.InfoSkill.Qckk.ListId.Contains(c.Id)) character.InfoSkill.Qckk.ListId.Add(c.Id);
-                                        }
-                                    }
-                                });
-                                task.Start();
-                                break;
-                            }
-                            //LAZE
-                            case 1:
-                            {
-                                Server.Gi().Logger.Debug($"Check skill ------------------------- manause: {manaUse} ------ manaChar: {manaChar}");
-                                if (manaChar <= 0 || skillCharFocus.CoolDown > timeServer) return;
-                                character.InfoSkill.Laze.Hold = true;
-                                character.InfoSkill.Laze.Time = 3000 + timeServer;
-                                character.CharacterHandler.SendZoneMessage(Service.SkillNotFocus4(character.Id, skillData.SkillId, 5000));
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                    //Biến khỉ
-                    case 6:
-                    {
-                        if (character.InfoChar.Gender != 2 || skillCharFocus.CoolDown > timeServer) return;
-                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                        
-                        async void Action()
-                        {
-                            zone.ZoneHandler.SendMessage(Service.SkillNotFocus6(character.Id, skillData.SkillId));
-                            var headMonkey = skillData.SkillId switch
-                            {
-                                92 => 195,
-                                93 => 196,
-                                94 => 199,
-                                95 => 197,
-                                96 => 200,
-                                97 => 198,
-                                _ => 192
-                            };
-                            character.InfoSkill.Monkey.IsStart = true;
-                            character.InfoSkill.Monkey.HeadMonkey = (short) headMonkey;
-                            character.InfoSkill.Monkey.Delay = 2000 + timeServer;
-                            await Task.Delay(3000);
-                            character.InfoSkill.Monkey.IsStart = false;
-                            if (!character.InfoChar.IsDie)
-                            {
-                                HandleMonkey(character, true);
-                            }
-                        }
-                        var task = new Task(Action);
-                        task.Start();
-                        break;
-                    }
-                    //Tự sát
-                    case 7:
-                    {
-                        //Check Gender, mana, cooldownSkill
-                        if(character.InfoChar.Gender != 2 || manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
-                        zone.ZoneHandler.SendMessage(Service.SkillNotFocus1(character.Id, skillData.SkillId));
-                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                     
-                        character.CharacterHandler.MineMp(manaUse);
-
-                        //Send eff tự sát
-                        zone.ZoneHandler.SendMessage(Service.SkillNotFocus7(character.Id, skillData.SkillId, 2500));
-                        //Set delay tự sát
-                        character.InfoSkill.TuSat.Delay = 2000 + timeServer;
-                        character.InfoSkill.TuSat.Damage = skillData.Damage;
-                        break;
-                    }
-                    case 8:
-                    {      
-                        if(character.InfoChar.IsDie) return;
-                        switch (character.InfoChar.Gender)
-                        {
-                            //Start Đẻ trứng
-                            case 1:
-                            {
-                                if(character.InfoChar.Gender != 1 || manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
-                                skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+                                manaUse += charRel.SpecialSkill.Value;
                                 character.CharacterHandler.MineMp(manaUse);
 
-                                if (character.InfoSkill.Egg.Monster is {IsDie: false})
+                                skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+                                skillCharFocus.CoolDown -= skillData.CoolDown * charRel.SpecialSkill.Value / 100;
+
+                                if (skillCharFocus.CoolDown < 0)
                                 {
-                                    zone.ZoneHandler.SendMessage(Service.UpdateMonsterMe7(character.InfoSkill.Egg.Monster.IdMap));
-                                    zone.ZoneHandler.RemoveMonsterMe(character.InfoSkill.Egg.Monster.IdMap);
+                                    skillCharFocus.CoolDown = 500;
+                                }
+                            }
+                            else
+                            {
+                                skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+                                character.CharacterHandler.MineMp(manaUse);
+                            }
+
+
+                            var monsters = new List<IMonster>();
+                            var characters = new List<ICharacter>();
+
+                            int time = DataCache.TimeStun[skillData.Point];
+
+                            if (character.InfoSet.IsFullSetThienXinHang)
+                            {
+                                time *= 2;
+                            }
+
+                            lock (zone.MonsterMaps)
+                            {
+                                foreach (var monsterMap in zone.MonsterMaps.Where(m => m is { IsDie: false }))
+                                {
+                                    lock (monsterMap.InfoSkill.ThaiDuongHanSan)
+                                    {
+                                        monsterMap.InfoSkill.ThaiDuongHanSan.IsStun = true;
+                                        monsterMap.InfoSkill.ThaiDuongHanSan.Time = time * 1000 + timeServer;
+                                        monsterMap.InfoSkill.ThaiDuongHanSan.TimeReal = time;
+                                        character.Zone.ZoneHandler.SendMessage(Service.SkillEffectMonster(character.Id, monsterMap.IdMap, 1, 40));
+                                    }
+                                    monsterMap.IsDontMove = true;
+                                    character.Zone.ZoneHandler.SendMessage(Service.MonsterDontMove(monsterMap.IdMap, true));
+                                    monsters.Add(monsterMap);
+                                }
+                            }
+
+                            if (character.Flag != 0 || (charRel.Test != null && charRel.Test.IsTest) || charRel.InfoChar.TypePk == 3)
+                            {
+                                lock (zone.Characters)
+                                {
+                                    foreach (var real in zone.Characters.Values.Where(c => c != null && c.Id != character.Id && !c.InfoChar.IsDie))
+                                    {
+                                        if (real.InfoChar.TypePk != 3 && real.Flag != 8 &&
+                                            (real.Flag == 0 || real.Flag == character.Flag) &&
+                                            (!real.Test.IsTest || real.Test.TestCharacterId != character.Id)) continue;
+                                        lock (real.InfoSkill.ThaiDuongHanSan)
+                                        {
+                                            var timeReal = time;
+                                            //Cải trang Giảm thời gian choáng
+                                            if (true) timeReal -= 0;
+                                            real.InfoSkill.ThaiDuongHanSan.IsStun = true;
+                                            real.InfoSkill.ThaiDuongHanSan.Time = timeReal * 1000 + timeServer;
+                                            real.InfoSkill.ThaiDuongHanSan.TimeReal = timeReal;
+
+                                            zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, real.Id, 1, 40));
+                                            zone.ZoneHandler.SendMessage(Service.PublicChat(real.Id, TextServer.gI().SKILL_BLIND[ServerUtils.RandomNumber(TextServer.gI().SKILL_BLIND.Count)]));
+                                        }
+                                        characters.Add(real);
+                                    }
                                 }
 
-                                var hp = (20 + skillData.Point*10)*character.HpFull/100;
-                                var damage = skillData.Damage*character.DamageFull/100;
-                                var timeUse = 300000 + 60000 * skillData.Point + timeServer;
-                                character.InfoSkill.Egg.Monster = new MonsterPet(character, zone, DataCache.IdMonsterPet[skillData.Point-1], hp, damage);
-                                character.InfoSkill.Egg.Time = timeUse;
-                                if (zone.ZoneHandler.AddMonsterPet(character.InfoSkill.Egg.Monster))
+                                lock (zone.Disciples)
                                 {
-                                    zone.ZoneHandler.SendMessage(Service.UpdateMonsterMe0(character.InfoSkill.Egg.Monster));
-                                }
-                                else
-                                {
-                                    RemoveMonsterPet(character);
-                                }
-                                // Nội tại giảm thời gian hồi chiêu
-                                var charRel = (Model.Character.Character)character;
-                                var specialId = charRel.SpecialSkill.Id;
-                                if (specialId == 14)
-                                {
-                                    var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown*charRel.SpecialSkill.Value)/100);
-                                    skillCharFocus.CoolDown = thoiGianHoiChieu + timeServer;
-                                    if (skillCharFocus.CoolDown < 0)
+                                    foreach (var real in zone.Disciples.Values.Where(c => c != null && (c.Id + character.Id) != 0 && !c.InfoChar.IsDie))
                                     {
-                                        skillCharFocus.CoolDown = 500;
+                                        if (real.Character.InfoChar.TypePk != 3 && real.Character.Flag != 8 &&
+                                            (real.Character.Flag == 0 || real.Character.Flag == character.Flag) &&
+                                            (!real.Character.Test.IsTest || real.Character.Test.TestCharacterId != character.Id)) continue;
+                                        lock (real.InfoSkill.ThaiDuongHanSan)
+                                        {
+                                            var timeReal = time;
+                                            //Cải trang Giảm thời gian choáng
+                                            if (true) timeReal -= 0;
+                                            real.InfoSkill.ThaiDuongHanSan.IsStun = true;
+                                            real.InfoSkill.ThaiDuongHanSan.Time = timeReal * 1000 + timeServer;
+                                            real.InfoSkill.ThaiDuongHanSan.TimeReal = timeReal;
+
+                                            zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, real.Id, 1, 40));
+                                            zone.ZoneHandler.SendMessage(Service.PublicChat(real.Id, TextServer.gI().SKILL_BLIND[ServerUtils.RandomNumber(TextServer.gI().SKILL_BLIND.Count)]));
+                                        }
+                                        characters.Add(real);
                                     }
-                                    character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
                                 }
-                                break;
                             }
-                            //Xử lý tự sát
-                            case 2:
+
+                            lock (zone.Bosses)
                             {
-                                HandleTuSat(character, skillCharFocus, skillData);
-                                break;
+                                foreach (var real in zone.Bosses.Values.Where(c => c != null && c.Id != character.Id && !c.InfoChar.IsDie))
+                                {
+                                    lock (real.InfoSkill.ThaiDuongHanSan)
+                                    {
+                                        var timeReal = time / 2;
+                                        real.InfoSkill.ThaiDuongHanSan.IsStun = true;
+                                        real.InfoSkill.ThaiDuongHanSan.Time = timeReal * 1000 + timeServer;
+                                        real.InfoSkill.ThaiDuongHanSan.TimeReal = timeReal;
+
+                                        zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, real.Id, 1, 40));
+                                        zone.ZoneHandler.SendMessage(Service.PublicChat(real.Id, TextServer.gI().SKILL_BLIND[ServerUtils.RandomNumber(TextServer.gI().SKILL_BLIND.Count)]));
+                                    }
+                                    characters.Add(real);
+                                }
                             }
+
+                            zone.ZoneHandler.SendMessage(Service.SkillNotFocus0(character.Id, skillData.SkillId, characters, monsters));
+                            break;
                         }
-                        break;
-                    }
+                    //START Dùng skill tái tạo năng lượng
+                    case 1:
+                        {
+                            if (character.InfoChar.Gender != 2 || skillCharFocus.CoolDown > timeServer) return;
+                            zone.ZoneHandler.SendMessage(Service.SkillNotFocus1(character.Id, skillData.SkillId));
+                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+                            character.InfoSkill.TaiTaoNangLuong.IsTTNL = true;
+                            character.InfoSkill.TaiTaoNangLuong.DelayTTNL = 20000 + timeServer;
+                            break;
+                        }
+                    //DOING Xử lý tái tạo năng lượng
+                    case 2:
+                        {
+                            if (character.InfoChar.Gender != 2) return;
+                            var hpFull = character.HpFull;
+                            var mpFull = character.MpFull;
+                            var hpNow = character.InfoChar.Hp;
+                            var mpNow = character.InfoChar.Mp;
+                            var percentHp = (int)((hpFull - hpNow) * 100 / character.HpFull);
+                            var percentMp = (int)((mpFull - mpNow) * 100 / character.HpFull);
+                            if (percentHp > 30 || percentMp > 30)
+                            {
+                                zone.ZoneHandler.SendMessage(Service.PublicChat(character.Id, $"Tái tạo năng lượng: {(percentHp > percentMp ? percentHp : percentMp)}%"));
+                            }
+
+                            if (hpNow < hpFull)
+                            {
+                                character.CharacterHandler.PlusHp((int)(skillData.Damage * hpFull / 100));
+                                zone.ZoneHandler.SendMessage(Service.PlayerLevel(character));
+                            }
+
+                            if (mpNow < mpFull)
+                            {
+                                character.CharacterHandler.PlusMp((int)(skillData.Damage * mpFull / 100));
+                            }
+
+                            if (character.InfoSkill.TaiTaoNangLuong.IsTTNL && character.InfoSkill.TaiTaoNangLuong.Crit <= 0)
+                            {
+                                character.InfoSkill.TaiTaoNangLuong.Crit = ServerUtils.RandomNumber(3);
+                            }
+
+                            if (character.InfoChar.Hp == hpFull && character.InfoChar.Mp == mpFull)
+                            {
+                                RemoveTTNL(character, skillTemplate.Id);
+                            }
+                            break;
+                        }
+                    //STOP Dừng tái tạo năng lượng
+                    case 3:
+                        {
+                            if (character.InfoChar.Gender != 2) return;
+                            RemoveTTNL(character, skillTemplate.Id);
+                            break;
+                        }
+                    //QCKK + LAZE
+                    case 4:
+                        {
+                            switch (character.InfoChar.Gender)
+                            {
+                                //QCKK
+                                case 0:
+                                    {
+                                        Server.Gi().Logger.Debug($"Check skill ------------------------- manause: {manaUse} ------ manaChar: {manaChar}");
+                                        if (manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
+                                        character.InfoSkill.Qckk.Time = 3000 + timeServer;
+                                        character.CharacterHandler.SendZoneMessage(Service.SkillNotFocus4(character.Id, skillData.SkillId, 5000));
+
+                                        var task = new Task(() =>
+                                        {
+                                            while (character.InfoSkill.Qckk.Time > ServerUtils.CurrentTimeMillis() && !character.InfoChar.IsDie)
+                                            {
+                                                foreach (var c in zone.Characters.Values.Where(c => c != null && !c.InfoChar.IsDie && c.Id != character.Id))
+                                                {
+                                                    if (Math.Abs(c.InfoChar.X - character.InfoChar.X) > skillData.Dx) continue;
+                                                    character.InfoSkill.Qckk.ListId.Clear();
+                                                    if (!character.InfoSkill.Qckk.ListId.Contains(c.Id)) character.InfoSkill.Qckk.ListId.Add(c.Id);
+                                                }
+                                            }
+                                        });
+                                        task.Start();
+                                        break;
+                                    }
+                                //LAZE
+                                case 1:
+                                    {
+                                        Server.Gi().Logger.Debug($"Check skill ------------------------- manause: {manaUse} ------ manaChar: {manaChar}");
+                                        if (manaChar <= 0 || skillCharFocus.CoolDown > timeServer) return;
+                                        character.InfoSkill.Laze.Hold = true;
+                                        character.InfoSkill.Laze.Time = 3000 + timeServer;
+                                        character.CharacterHandler.SendZoneMessage(Service.SkillNotFocus4(character.Id, skillData.SkillId, 5000));
+                                        break;
+                                    }
+                            }
+                            break;
+                        }
+                    //Biến khỉ
+                    case 6:
+                        {
+                            if (character.InfoChar.Gender != 2 || skillCharFocus.CoolDown > timeServer) return;
+                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+
+                            async void Action()
+                            {
+                                zone.ZoneHandler.SendMessage(Service.SkillNotFocus6(character.Id, skillData.SkillId));
+                                var headMonkey = skillData.SkillId switch
+                                {
+                                    92 => 195,
+                                    93 => 196,
+                                    94 => 199,
+                                    95 => 197,
+                                    96 => 200,
+                                    97 => 198,
+                                    _ => 192
+                                };
+                                character.InfoSkill.Monkey.IsStart = true;
+                                character.InfoSkill.Monkey.HeadMonkey = (short)headMonkey;
+                                character.InfoSkill.Monkey.Delay = 2000 + timeServer;
+                                await Task.Delay(3000);
+                                character.InfoSkill.Monkey.IsStart = false;
+                                if (!character.InfoChar.IsDie)
+                                {
+                                    HandleMonkey(character, true);
+                                }
+                            }
+                            var task = new Task(Action);
+                            task.Start();
+                            break;
+                        }
+                    //Tự sát
+                    case 7:
+                        {
+                            //Check Gender, mana, cooldownSkill
+                            if (character.InfoChar.Gender != 2 || manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
+                            zone.ZoneHandler.SendMessage(Service.SkillNotFocus1(character.Id, skillData.SkillId));
+                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+
+                            character.CharacterHandler.MineMp(manaUse);
+
+                            //Send eff tự sát
+                            zone.ZoneHandler.SendMessage(Service.SkillNotFocus7(character.Id, skillData.SkillId, 2500));
+                            //Set delay tự sát
+                            character.InfoSkill.TuSat.Delay = 2000 + timeServer;
+                            character.InfoSkill.TuSat.Damage = skillData.Damage;
+                            break;
+                        }
+                    case 8:
+                        {
+                            if (character.InfoChar.IsDie) return;
+                            switch (character.InfoChar.Gender)
+                            {
+                                //Start Đẻ trứng
+                                case 1:
+                                    {
+                                        if (character.InfoChar.Gender != 1 || manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
+                                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+                                        character.CharacterHandler.MineMp(manaUse);
+
+                                        if (character.InfoSkill.Egg.Monster is { IsDie: false })
+                                        {
+                                            zone.ZoneHandler.SendMessage(Service.UpdateMonsterMe7(character.InfoSkill.Egg.Monster.IdMap));
+                                            zone.ZoneHandler.RemoveMonsterMe(character.InfoSkill.Egg.Monster.IdMap);
+                                        }
+
+                                        var hp = (20 + skillData.Point * 10) * character.HpFull / 100;
+                                        var damage = skillData.Damage * character.DamageFull / 100;
+                                        var timeUse = 300000 + 60000 * skillData.Point + timeServer;
+                                        character.InfoSkill.Egg.Monster = new MonsterPet(character, zone, DataCache.IdMonsterPet[skillData.Point - 1], hp, damage);
+                                        character.InfoSkill.Egg.Time = timeUse;
+                                        if (zone.ZoneHandler.AddMonsterPet(character.InfoSkill.Egg.Monster))
+                                        {
+                                            zone.ZoneHandler.SendMessage(Service.UpdateMonsterMe0(character.InfoSkill.Egg.Monster));
+                                        }
+                                        else
+                                        {
+                                            RemoveMonsterPet(character);
+                                        }
+                                        // Nội tại giảm thời gian hồi chiêu
+                                        var charRel = (Model.Character.Character)character;
+                                        var specialId = charRel.SpecialSkill.Id;
+                                        if (specialId == 14)
+                                        {
+                                            var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown * charRel.SpecialSkill.Value) / 100);
+                                            skillCharFocus.CoolDown = thoiGianHoiChieu + timeServer;
+                                            if (skillCharFocus.CoolDown < 0)
+                                            {
+                                                skillCharFocus.CoolDown = 500;
+                                            }
+                                            character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
+                                        }
+                                        break;
+                                    }
+                                //Xử lý tự sát
+                                case 2:
+                                    {
+                                        HandleTuSat(character, skillCharFocus, skillData);
+                                        break;
+                                    }
+                            }
+                            break;
+                        }
                     //Lá chắn
                     case 9:
-                    {
-                        if(manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
-                        character.CharacterHandler.MineMp(manaUse);
-                     
-                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                        var timeUse = DataCache.TimeProtect[skillData.Point];
-                        zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, character.Id, 1, 33));
-                        character.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeProtect[0], timeUse/10));
-                        character.InfoSkill.Protect.IsProtect = true;
-                        character.InfoSkill.Protect.Time = timeUse*100 + timeServer;
-
-                        // Nội tại giảm thời gian hồi chiêu
-                        var charRel = (Model.Character.Character)character;
-                        var specialId = charRel.SpecialSkill.Id;
-                        if (specialId == 4 || specialId == 17 || specialId == 25)
                         {
-                            var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown*charRel.SpecialSkill.Value)/100);
-                            skillCharFocus.CoolDown = thoiGianHoiChieu + timeServer;
-                            if (skillCharFocus.CoolDown < 0)
+                            if (manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
+                            character.CharacterHandler.MineMp(manaUse);
+
+                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+                            var timeUse = DataCache.TimeProtect[skillData.Point];
+                            zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, character.Id, 1, 33));
+                            character.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeProtect[0], timeUse / 10));
+                            character.InfoSkill.Protect.IsProtect = true;
+                            character.InfoSkill.Protect.Time = timeUse * 100 + timeServer;
+
+                            // Nội tại giảm thời gian hồi chiêu
+                            var charRel = (Model.Character.Character)character;
+                            var specialId = charRel.SpecialSkill.Id;
+                            if (specialId == 4 || specialId == 17 || specialId == 25)
                             {
-                                skillCharFocus.CoolDown = 500;
+                                var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown * charRel.SpecialSkill.Value) / 100);
+                                skillCharFocus.CoolDown = thoiGianHoiChieu + timeServer;
+                                if (skillCharFocus.CoolDown < 0)
+                                {
+                                    skillCharFocus.CoolDown = 500;
+                                }
+                                character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
                             }
-                            character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
+                            break;
                         }
-                        break;
-                    }
                     //Huýt sáo
                     case 10:
-                    {
-                        if(character.InfoChar.Gender != 2 || manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
-                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                     
-                        character.CharacterHandler.MineMp(manaUse);
-                        var timeUse = DataCache.TimeHuytSao[1];
-                        lock (character.Zone.Characters)
                         {
-                            character.Zone.Characters.Values.Where(c => !c.InfoChar.IsDie).ToList().ForEach(c =>
-                            {
-                                lock (c)
-                                {
-                                    c.CharacterHandler.SendZoneMessage(Service.SkillEffectPlayer(c.Id, c.Id,1, 39));
-                                    c.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeHuytSao[0], timeUse/10));
-                                    if (!c.InfoSkill.HuytSao.IsHuytSao)
-                                    {
-                                        c.HpFull += c.HpFull * skillData.Damage / 100;
-                                    }
-                                    c.InfoSkill.HuytSao.IsHuytSao = true;
-                                    c.InfoSkill.HuytSao.Percent = skillData.Damage;
-                                    c.InfoSkill.HuytSao.Time = timeUse*100 + timeServer;
-                                    // c.CharacterHandler.SetHpFull();
-                                    c.CharacterHandler.SendMessage(Service.MeLoadPoint(c));
-                                    c.CharacterHandler.PlusHp((int)(c.HpFull*c.InfoSkill.HuytSao.Percent/100));
-                                    c.CharacterHandler.SendMessage(Service.SendHp((int)c.InfoChar.Hp));
-                                    c.CharacterHandler.SendZoneMessage(Service.PlayerLevel(c));
-                                }
-                            });
-                        }
-                        lock (character.Zone.Disciples)
-                        {
-                            character.Zone.Disciples.Values.Where(c => !c.InfoChar.IsDie).ToList().ForEach(c =>
-                            {
-                                lock (c)
-                                {
-                                    c.CharacterHandler.SendZoneMessage(Service.SkillEffectPlayer(c.Id, c.Id,1, 39));
-                                    if (!c.InfoSkill.HuytSao.IsHuytSao)
-                                    {
-                                        c.HpFull += c.HpFull * skillData.Damage / 100;
-                                    }
-                                    c.InfoSkill.HuytSao.IsHuytSao = true;
-                                    c.InfoSkill.HuytSao.Percent = skillData.Damage;
-                                    c.InfoSkill.HuytSao.Time = timeUse*100 + timeServer;
-                                    // c.CharacterHandler.SetHpFull();
-                                    c.CharacterHandler.PlusHp((int)(c.HpFull*c.InfoSkill.HuytSao.Percent/100));
-                                    c.CharacterHandler.SendZoneMessage(Service.PlayerLevel(c));
-                                }
-                            });
-                        }
+                            if (character.InfoChar.Gender != 2 || manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
+                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
 
-                        var charRel = (Model.Character.Character)character;
-                        var specialId = charRel.SpecialSkill.Id;
-                        if (specialId == 23)
-                        {
-                            var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown*charRel.SpecialSkill.Value)/100);
-                            skillCharFocus.CoolDown = thoiGianHoiChieu + timeServer;
-                            if (skillCharFocus.CoolDown < 0)
+                            character.CharacterHandler.MineMp(manaUse);
+                            var timeUse = DataCache.TimeHuytSao[1];
+                            lock (character.Zone.Characters)
                             {
-                                skillCharFocus.CoolDown = 500;
+                                character.Zone.Characters.Values.Where(c => !c.InfoChar.IsDie).ToList().ForEach(c =>
+                                {
+                                    lock (c)
+                                    {
+                                        c.CharacterHandler.SendZoneMessage(Service.SkillEffectPlayer(c.Id, c.Id, 1, 39));
+                                        c.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeHuytSao[0], timeUse / 10));
+                                        if (!c.InfoSkill.HuytSao.IsHuytSao)
+                                        {
+                                            c.HpFull += c.HpFull * skillData.Damage / 100;
+                                        }
+                                        c.InfoSkill.HuytSao.IsHuytSao = true;
+                                        c.InfoSkill.HuytSao.Percent = skillData.Damage;
+                                        c.InfoSkill.HuytSao.Time = timeUse * 100 + timeServer;
+                                        // c.CharacterHandler.SetHpFull();
+                                        c.CharacterHandler.SendMessage(Service.MeLoadPoint(c));
+                                        c.CharacterHandler.PlusHp((int)(c.HpFull * c.InfoSkill.HuytSao.Percent / 100));
+                                        c.CharacterHandler.SendMessage(Service.SendHp((int)c.InfoChar.Hp));
+                                        c.CharacterHandler.SendZoneMessage(Service.PlayerLevel(c));
+                                    }
+                                });
                             }
-                            character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
+                            lock (character.Zone.Disciples)
+                            {
+                                character.Zone.Disciples.Values.Where(c => !c.InfoChar.IsDie).ToList().ForEach(c =>
+                                {
+                                    lock (c)
+                                    {
+                                        c.CharacterHandler.SendZoneMessage(Service.SkillEffectPlayer(c.Id, c.Id, 1, 39));
+                                        if (!c.InfoSkill.HuytSao.IsHuytSao)
+                                        {
+                                            c.HpFull += c.HpFull * skillData.Damage / 100;
+                                        }
+                                        c.InfoSkill.HuytSao.IsHuytSao = true;
+                                        c.InfoSkill.HuytSao.Percent = skillData.Damage;
+                                        c.InfoSkill.HuytSao.Time = timeUse * 100 + timeServer;
+                                        // c.CharacterHandler.SetHpFull();
+                                        c.CharacterHandler.PlusHp((int)(c.HpFull * c.InfoSkill.HuytSao.Percent / 100));
+                                        c.CharacterHandler.SendZoneMessage(Service.PlayerLevel(c));
+                                    }
+                                });
+                            }
+
+                            var charRel = (Model.Character.Character)character;
+                            var specialId = charRel.SpecialSkill.Id;
+                            if (specialId == 23)
+                            {
+                                var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown * charRel.SpecialSkill.Value) / 100);
+                                skillCharFocus.CoolDown = thoiGianHoiChieu + timeServer;
+                                if (skillCharFocus.CoolDown < 0)
+                                {
+                                    skillCharFocus.CoolDown = 500;
+                                }
+                                character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
+                            }
+                            break;
                         }
-                        break;
-                    }
                 }
                 character.CharacterHandler.MineStamina(1);
             }
@@ -514,10 +515,10 @@ namespace NRO_Server.Application.Handlers.Skill
                 }
                 //Get skill
                 var skillCharFocus = disciple.Skills.FirstOrDefault(skl => skl.Id == id);
-                if(skillCharFocus == null) return;
+                if (skillCharFocus == null) return;
                 var skillTemplate = Cache.Gi().SKILL_TEMPLATES.FirstOrDefault(skl => skl.Id == skillCharFocus.Id);
                 var skillData = skillTemplate?.SkillDataTemplates.FirstOrDefault(skl => skl.SkillId == skillCharFocus.SkillId);
-                if(skillData == null) return;
+                if (skillData == null) return;
 
                 //Check mana
                 var manaUse = skillData.ManaUse;
@@ -525,8 +526,8 @@ namespace NRO_Server.Application.Handlers.Skill
                 var manaChar = disciple.InfoChar.Mp;
                 manaUse = manaUseType switch
                 {
-                    1 => manaUse * (int) disciple.MpFull / 100,
-                    2 => (int) manaChar,
+                    1 => manaUse * (int)disciple.MpFull / 100,
+                    2 => (int)manaChar,
                     _ => manaUse
                 };
 
@@ -535,311 +536,312 @@ namespace NRO_Server.Application.Handlers.Skill
                 {
                     RemoveTTNL(disciple, skillTemplate.Id);
                 }
-                
+
                 var timeServer = ServerUtils.CurrentTimeMillis();
                 switch (status)
                 {
                     //Start Choáng
                     case 0:
-                    {
-                        if(manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
-                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                        disciple.CharacterHandler.MineMp(manaUse);
-
-                        var monsters = new List<IMonster>();
-                        var characters = new List<ICharacter>();
-
-                        int time = DataCache.TimeStun[skillData.Point];
-                        var timeUse = time*1000 + timeServer;
-
-                        if (disciple.InfoSet.IsFullSetThienXinHang)
                         {
-                            time*=2;
-                        }
+                            if (manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
+                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+                            disciple.CharacterHandler.MineMp(manaUse);
 
-                        lock (zone.MonsterMaps)
-                        {
-                            foreach (var monsterMap in zone.MonsterMaps.Where(m => m is {IsDie: false}))
+                            var monsters = new List<IMonster>();
+                            var characters = new List<ICharacter>();
+
+                            int time = DataCache.TimeStun[skillData.Point];
+                            var timeUse = time * 1000 + timeServer;
+
+                            if (disciple.InfoSet.IsFullSetThienXinHang)
                             {
-                                lock (monsterMap.InfoSkill.ThaiDuongHanSan)
-                                {
-                                    monsterMap.InfoSkill.ThaiDuongHanSan.IsStun = true;
-                                    monsterMap.InfoSkill.ThaiDuongHanSan.Time = timeUse;
-                                    monsterMap.InfoSkill.ThaiDuongHanSan.TimeReal = time;
-                                    zone.ZoneHandler.SendMessage(Service.SkillEffectMonster(disciple.Id, monsterMap.IdMap, 1, 40));
-                                }
-                                monsterMap.IsDontMove = true;
-                                zone.ZoneHandler.SendMessage(Service.MonsterDontMove(monsterMap.IdMap, true));
-                                monsters.Add(monsterMap);
+                                time *= 2;
                             }
-                        }
 
-                        lock (zone.Characters)
-                        {
-                            foreach (var real in zone.Characters.Values.Where(c => c != null && (c.Id + disciple.Id) != 0 && !c.InfoChar.IsDie))
+                            lock (zone.MonsterMaps)
                             {
-                                if (real.Id + disciple.Id != 0 && real.InfoChar.TypePk != 3 && real.Flag != 8 &&
-                                    (real.Flag == 0 || real.Flag == disciple.Flag) && (!real.Test.IsTest ||
-                                        real.Test.TestCharacterId != disciple.Character.Id)) continue;
-                                lock (real.InfoSkill.ThaiDuongHanSan)
+                                foreach (var monsterMap in zone.MonsterMaps.Where(m => m is { IsDie: false }))
                                 {
-                                    var timeReal = time;
-                                    //Cải trang Giảm thời gian choáng
-                                    if (true) timeReal -= 0;
-                                    real.InfoSkill.ThaiDuongHanSan.IsStun = true;
-                                    real.InfoSkill.ThaiDuongHanSan.Time = timeReal*1000 + timeServer;
-                                    real.InfoSkill.ThaiDuongHanSan.TimeReal = timeReal;
-
-                                    zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(disciple.Id, real.Id, 1, 40));
-                                    zone.ZoneHandler.SendMessage(Service.PublicChat(real.Id, TextServer.gI().SKILL_BLIND[ServerUtils.RandomNumber(TextServer.gI().SKILL_BLIND.Count)]));
+                                    lock (monsterMap.InfoSkill.ThaiDuongHanSan)
+                                    {
+                                        monsterMap.InfoSkill.ThaiDuongHanSan.IsStun = true;
+                                        monsterMap.InfoSkill.ThaiDuongHanSan.Time = timeUse;
+                                        monsterMap.InfoSkill.ThaiDuongHanSan.TimeReal = time;
+                                        zone.ZoneHandler.SendMessage(Service.SkillEffectMonster(disciple.Id, monsterMap.IdMap, 1, 40));
+                                    }
+                                    monsterMap.IsDontMove = true;
+                                    zone.ZoneHandler.SendMessage(Service.MonsterDontMove(monsterMap.IdMap, true));
+                                    monsters.Add(monsterMap);
                                 }
-                                characters.Add(real);
                             }
+
+                            lock (zone.Characters)
+                            {
+                                foreach (var real in zone.Characters.Values.Where(c => c != null && (c.Id + disciple.Id) != 0 && !c.InfoChar.IsDie))
+                                {
+                                    if (real.Id + disciple.Id != 0 && real.InfoChar.TypePk != 3 && real.Flag != 8 &&
+                                        (real.Flag == 0 || real.Flag == disciple.Flag) && (!real.Test.IsTest ||
+                                            real.Test.TestCharacterId != disciple.Character.Id)) continue;
+                                    lock (real.InfoSkill.ThaiDuongHanSan)
+                                    {
+                                        var timeReal = time;
+                                        //Cải trang Giảm thời gian choáng
+                                        if (true) timeReal -= 0;
+                                        real.InfoSkill.ThaiDuongHanSan.IsStun = true;
+                                        real.InfoSkill.ThaiDuongHanSan.Time = timeReal * 1000 + timeServer;
+                                        real.InfoSkill.ThaiDuongHanSan.TimeReal = timeReal;
+
+                                        zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(disciple.Id, real.Id, 1, 40));
+                                        zone.ZoneHandler.SendMessage(Service.PublicChat(real.Id, TextServer.gI().SKILL_BLIND[ServerUtils.RandomNumber(TextServer.gI().SKILL_BLIND.Count)]));
+                                    }
+                                    characters.Add(real);
+                                }
+                            }
+                            zone.ZoneHandler.SendMessage(Service.SkillNotFocus0(disciple.Id, skillData.SkillId, characters, monsters));
+                            break;
                         }
-                        zone.ZoneHandler.SendMessage(Service.SkillNotFocus0(disciple.Id, skillData.SkillId, characters, monsters));
-                        break;
-                    }
                     //START Dùng skill tái tạo năng lượng
                     case 1:
-                    {
-                        if(skillCharFocus.CoolDown > timeServer) return;
-                        zone.ZoneHandler.SendMessage(Service.SkillNotFocus1(disciple.Id, skillData.SkillId));
-                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                        disciple.InfoSkill.TaiTaoNangLuong.IsTTNL = true;
-                        disciple.InfoSkill.TaiTaoNangLuong.DelayTTNL = 20000 + timeServer;
-                        break;
-                    }
+                        {
+                            if (skillCharFocus.CoolDown > timeServer) return;
+                            zone.ZoneHandler.SendMessage(Service.SkillNotFocus1(disciple.Id, skillData.SkillId));
+                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+                            disciple.InfoSkill.TaiTaoNangLuong.IsTTNL = true;
+                            disciple.InfoSkill.TaiTaoNangLuong.DelayTTNL = 20000 + timeServer;
+                            break;
+                        }
                     //DOING Xử lý tái tạo năng lượng
                     case 2:
-                    {
-                        var hpFull = disciple.HpFull;
-                        var mpFull = disciple.MpFull;
-                        var hpNow = disciple.InfoChar.Hp;
-                        var mpNow = disciple.InfoChar.Mp;
-                        var percentHp = (int)((hpFull- hpNow)*100/disciple.HpFull);
-                        var percentMp = (int)((mpFull - mpNow)*100/disciple.HpFull);
-                        if(percentHp > 30 || percentMp > 30) {
-                            zone.ZoneHandler.SendMessage(Service.PublicChat(disciple.Id, $"Tái tạo năng lượng: {(percentHp > percentMp ? percentHp : percentMp)}%"));
-                        }
-
-                        if (hpNow < hpFull)
                         {
-                            disciple.CharacterHandler.PlusHp((int)(skillData.Damage * hpFull / 100));
-                            zone.ZoneHandler.SendMessage(Service.PlayerLevel(disciple));
-                        }
+                            var hpFull = disciple.HpFull;
+                            var mpFull = disciple.MpFull;
+                            var hpNow = disciple.InfoChar.Hp;
+                            var mpNow = disciple.InfoChar.Mp;
+                            var percentHp = (int)((hpFull - hpNow) * 100 / disciple.HpFull);
+                            var percentMp = (int)((mpFull - mpNow) * 100 / disciple.HpFull);
+                            if (percentHp > 30 || percentMp > 30)
+                            {
+                                zone.ZoneHandler.SendMessage(Service.PublicChat(disciple.Id, $"Tái tạo năng lượng: {(percentHp > percentMp ? percentHp : percentMp)}%"));
+                            }
 
-                        if (mpNow < mpFull)
-                        {
-                            disciple.CharacterHandler.PlusMp((int)(skillData.Damage * mpFull / 100));
-                        }
+                            if (hpNow < hpFull)
+                            {
+                                disciple.CharacterHandler.PlusHp((int)(skillData.Damage * hpFull / 100));
+                                zone.ZoneHandler.SendMessage(Service.PlayerLevel(disciple));
+                            }
 
-                        if (disciple.InfoSkill.TaiTaoNangLuong.IsTTNL && disciple.InfoSkill.TaiTaoNangLuong.Crit <= 0)
-                        {
-                            disciple.InfoSkill.TaiTaoNangLuong.Crit = ServerUtils.RandomNumber(3);
-                        }
+                            if (mpNow < mpFull)
+                            {
+                                disciple.CharacterHandler.PlusMp((int)(skillData.Damage * mpFull / 100));
+                            }
 
-                        if (disciple.InfoChar.Hp == hpFull && disciple.InfoChar.Mp == mpFull)
-                        {
-                            RemoveTTNL(disciple, skillTemplate.Id);
+                            if (disciple.InfoSkill.TaiTaoNangLuong.IsTTNL && disciple.InfoSkill.TaiTaoNangLuong.Crit <= 0)
+                            {
+                                disciple.InfoSkill.TaiTaoNangLuong.Crit = ServerUtils.RandomNumber(3);
+                            }
+
+                            if (disciple.InfoChar.Hp == hpFull && disciple.InfoChar.Mp == mpFull)
+                            {
+                                RemoveTTNL(disciple, skillTemplate.Id);
+                            }
+                            break;
                         }
-                        break;
-                    }
                     //STOP Dừng tái tạo năng lượng
                     case 3:
-                    {
-                        RemoveTTNL(disciple, skillTemplate.Id);
-                        break;
-                    }
+                        {
+                            RemoveTTNL(disciple, skillTemplate.Id);
+                            break;
+                        }
                     //QCKK + LAZE
                     case 4:
-                    {
-                        switch (id)
                         {
-                            //QCKK
-                            case 10:
+                            switch (id)
                             {
-                                Server.Gi().Logger.Debug($"Check skill ------------------------- manause: {manaUse} ------ manaChar: {manaChar}");
-                                if (manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
-                                disciple.InfoSkill.Qckk.Time = 3000 + timeServer;
-                                disciple.CharacterHandler.SendZoneMessage(Service.SkillNotFocus4(disciple.Id, skillData.SkillId, 5000));
-
-                                var task = new Task(() =>
-                                {
-                                    while (disciple.InfoSkill.Qckk.Time > ServerUtils.CurrentTimeMillis() && !disciple.InfoChar.IsDie)
+                                //QCKK
+                                case 10:
                                     {
-                                        foreach (var c in zone.Characters.Values.Where(c => c != null && !c.InfoChar.IsDie && c.Id != disciple.Id))
+                                        Server.Gi().Logger.Debug($"Check skill ------------------------- manause: {manaUse} ------ manaChar: {manaChar}");
+                                        if (manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
+                                        disciple.InfoSkill.Qckk.Time = 3000 + timeServer;
+                                        disciple.CharacterHandler.SendZoneMessage(Service.SkillNotFocus4(disciple.Id, skillData.SkillId, 5000));
+
+                                        var task = new Task(() =>
                                         {
-                                            if (Math.Abs(c.InfoChar.X - disciple.InfoChar.X) > skillData.Dx) continue;
-                                            disciple.InfoSkill.Qckk.ListId.Clear();
-                                            if(!disciple.InfoSkill.Qckk.ListId.Contains(c.Id)) disciple.InfoSkill.Qckk.ListId.Add(c.Id); 
-                                        }
+                                            while (disciple.InfoSkill.Qckk.Time > ServerUtils.CurrentTimeMillis() && !disciple.InfoChar.IsDie)
+                                            {
+                                                foreach (var c in zone.Characters.Values.Where(c => c != null && !c.InfoChar.IsDie && c.Id != disciple.Id))
+                                                {
+                                                    if (Math.Abs(c.InfoChar.X - disciple.InfoChar.X) > skillData.Dx) continue;
+                                                    disciple.InfoSkill.Qckk.ListId.Clear();
+                                                    if (!disciple.InfoSkill.Qckk.ListId.Contains(c.Id)) disciple.InfoSkill.Qckk.ListId.Add(c.Id);
+                                                }
+                                            }
+                                        });
+                                        task.Start();
+                                        break;
                                     }
-                                });
-                                task.Start();
-                                break;
+                                //LAZE
+                                case 11:
+                                    {
+                                        Server.Gi().Logger.Debug($"Check skill ------------------------- manause: {manaUse} ------ manaChar: {manaChar}");
+                                        if (manaChar <= 0 || skillCharFocus.CoolDown > timeServer) return;
+                                        disciple.InfoSkill.Laze.Hold = true;
+                                        disciple.InfoSkill.Laze.Time = 3000 + timeServer;
+                                        disciple.CharacterHandler.SendZoneMessage(Service.SkillNotFocus4(disciple.Id, skillData.SkillId, 5000));
+                                        break;
+                                    }
                             }
-                            //LAZE
-                            case 11:
-                            {
-                                Server.Gi().Logger.Debug($"Check skill ------------------------- manause: {manaUse} ------ manaChar: {manaChar}");
-                                if (manaChar <= 0 || skillCharFocus.CoolDown > timeServer) return;
-                                disciple.InfoSkill.Laze.Hold = true;
-                                disciple.InfoSkill.Laze.Time = 3000 + timeServer;
-                                disciple.CharacterHandler.SendZoneMessage(Service.SkillNotFocus4(disciple.Id, skillData.SkillId, 5000));
-                                break;
-                            }
+                            break;
                         }
-                        break;
-                    }
                     //Biến khỉ
                     case 6:
-                    {
-                        if (skillCharFocus.CoolDown > timeServer) return;
-                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                        
-                        async void Action()
                         {
-                            zone.ZoneHandler.SendMessage(Service.SkillNotFocus6(disciple.Id, skillData.SkillId));
-                            var headMonkey = skillData.SkillId switch
+                            if (skillCharFocus.CoolDown > timeServer) return;
+                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+
+                            async void Action()
                             {
-                                92 => 195,
-                                93 => 196,
-                                94 => 199,
-                                95 => 197,
-                                96 => 200,
-                                97 => 198,
-                                _ => 192
-                            };
-                            disciple.InfoSkill.Monkey.IsStart = true;
-                            disciple.InfoSkill.Monkey.HeadMonkey = (short) headMonkey;
-                            disciple.InfoSkill.Monkey.Delay = 2000 + timeServer;
-                            await Task.Delay(3000);
-                            disciple.InfoSkill.Monkey.IsStart = false;
-                            if (!disciple.InfoChar.IsDie)
-                            {
-                                HandleMonkey(disciple, true);
+                                zone.ZoneHandler.SendMessage(Service.SkillNotFocus6(disciple.Id, skillData.SkillId));
+                                var headMonkey = skillData.SkillId switch
+                                {
+                                    92 => 195,
+                                    93 => 196,
+                                    94 => 199,
+                                    95 => 197,
+                                    96 => 200,
+                                    97 => 198,
+                                    _ => 192
+                                };
+                                disciple.InfoSkill.Monkey.IsStart = true;
+                                disciple.InfoSkill.Monkey.HeadMonkey = (short)headMonkey;
+                                disciple.InfoSkill.Monkey.Delay = 2000 + timeServer;
+                                await Task.Delay(3000);
+                                disciple.InfoSkill.Monkey.IsStart = false;
+                                if (!disciple.InfoChar.IsDie)
+                                {
+                                    HandleMonkey(disciple, true);
+                                }
                             }
+                            var task = new Task(Action);
+                            task.Start();
+                            break;
                         }
-                        var task = new Task(Action);
-                        task.Start();
-                        break;
-                    }
                     //Tự sát
                     case 7:
-                    {
-                        //Check Gender, mana, cooldownSkill
-                        if(manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
-                        zone.ZoneHandler.SendMessage(Service.SkillNotFocus1(disciple.Id, skillData.SkillId));
-                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                     
-                        disciple.CharacterHandler.MineMp(manaUse);
-
-                        //Send eff tự sát
-                        zone.ZoneHandler.SendMessage(Service.SkillNotFocus7(disciple.Id, skillData.SkillId, 3000));
-                        //Set delay tự sát
-                        disciple.InfoSkill.TuSat.Delay = 2500 + timeServer;
-                        disciple.InfoSkill.TuSat.Damage = skillData.Damage;
-                        break;
-                    }
-                    case 8:
-                    {      
-                        if(disciple.InfoChar.IsDie) return;
-                        switch (id)
                         {
-                            //Start Đẻ trứng
-                            case 12:
-                            {
-                                if(manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
-                                skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                                disciple.CharacterHandler.MineMp(manaUse);
+                            //Check Gender, mana, cooldownSkill
+                            if (manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
+                            zone.ZoneHandler.SendMessage(Service.SkillNotFocus1(disciple.Id, skillData.SkillId));
+                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
 
-                                if (disciple.InfoSkill.Egg.Monster is {IsDie: false})
-                                {
-                                    zone.ZoneHandler.SendMessage(Service.UpdateMonsterMe7(disciple.InfoSkill.Egg.Monster.IdMap));
-                                    zone.ZoneHandler.RemoveMonsterMe(disciple.InfoSkill.Egg.Monster.IdMap);
-                                }
+                            disciple.CharacterHandler.MineMp(manaUse);
 
-                                var hp = (20 + skillData.Point*10)*disciple.HpFull/100;
-                                var damage = skillData.Damage*disciple.DamageFull/100;
-                                var timeUse = 300000 + 60000 * skillData.Point + timeServer;
-                                disciple.InfoSkill.Egg.Monster = new MonsterPet(disciple, zone, DataCache.IdMonsterPet[skillData.Point-1], hp, damage);
-                                disciple.InfoSkill.Egg.Time = timeUse;
-                                if (zone.ZoneHandler.AddMonsterPet(disciple.InfoSkill.Egg.Monster))
-                                {
-                                    zone.ZoneHandler.SendMessage(Service.UpdateMonsterMe0(disciple.InfoSkill.Egg.Monster));
-                                }
-                                else
-                                {
-                                    RemoveMonsterPet(disciple);
-                                }
-                                break;
-                            }
-                            //Xử lý tự sát
-                            case 2:
-                            {
-                                HandleTuSat(disciple, skillCharFocus, skillData);
-                                break;
-                            }
+                            //Send eff tự sát
+                            zone.ZoneHandler.SendMessage(Service.SkillNotFocus7(disciple.Id, skillData.SkillId, 3000));
+                            //Set delay tự sát
+                            disciple.InfoSkill.TuSat.Delay = 2500 + timeServer;
+                            disciple.InfoSkill.TuSat.Damage = skillData.Damage;
+                            break;
                         }
-                        break;
-                    }
+                    case 8:
+                        {
+                            if (disciple.InfoChar.IsDie) return;
+                            switch (id)
+                            {
+                                //Start Đẻ trứng
+                                case 12:
+                                    {
+                                        if (manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
+                                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+                                        disciple.CharacterHandler.MineMp(manaUse);
+
+                                        if (disciple.InfoSkill.Egg.Monster is { IsDie: false })
+                                        {
+                                            zone.ZoneHandler.SendMessage(Service.UpdateMonsterMe7(disciple.InfoSkill.Egg.Monster.IdMap));
+                                            zone.ZoneHandler.RemoveMonsterMe(disciple.InfoSkill.Egg.Monster.IdMap);
+                                        }
+
+                                        var hp = (20 + skillData.Point * 10) * disciple.HpFull / 100;
+                                        var damage = skillData.Damage * disciple.DamageFull / 100;
+                                        var timeUse = 300000 + 60000 * skillData.Point + timeServer;
+                                        disciple.InfoSkill.Egg.Monster = new MonsterPet(disciple, zone, DataCache.IdMonsterPet[skillData.Point - 1], hp, damage);
+                                        disciple.InfoSkill.Egg.Time = timeUse;
+                                        if (zone.ZoneHandler.AddMonsterPet(disciple.InfoSkill.Egg.Monster))
+                                        {
+                                            zone.ZoneHandler.SendMessage(Service.UpdateMonsterMe0(disciple.InfoSkill.Egg.Monster));
+                                        }
+                                        else
+                                        {
+                                            RemoveMonsterPet(disciple);
+                                        }
+                                        break;
+                                    }
+                                //Xử lý tự sát
+                                case 2:
+                                    {
+                                        HandleTuSat(disciple, skillCharFocus, skillData);
+                                        break;
+                                    }
+                            }
+                            break;
+                        }
                     //Lá chắn
                     case 9:
-                    {
-                        if(manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
-                        disciple.CharacterHandler.MineMp(manaUse);
-                     
-                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                        var timeUse = DataCache.TimeProtect[skillData.Point];
-                        zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(disciple.Id, disciple.Id, 1, 33));
-                        disciple.InfoSkill.Protect.IsProtect = true;
-                        disciple.InfoSkill.Protect.Time = timeUse*100 + timeServer;
-                        break;
-                    }
+                        {
+                            if (manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
+                            disciple.CharacterHandler.MineMp(manaUse);
+
+                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+                            var timeUse = DataCache.TimeProtect[skillData.Point];
+                            zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(disciple.Id, disciple.Id, 1, 33));
+                            disciple.InfoSkill.Protect.IsProtect = true;
+                            disciple.InfoSkill.Protect.Time = timeUse * 100 + timeServer;
+                            break;
+                        }
                     //Huýt sáo
                     case 10:
-                    {
-                        if(manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
-                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                        disciple.CharacterHandler.MineMp(manaUse);
-                        var timeUse = DataCache.TimeHuytSao[1];
-                        lock (disciple.Zone.Characters)
                         {
-                            foreach (var c in disciple.Zone.Characters.Values.Where(c => !c.InfoChar.IsDie))
+                            if (manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
+                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+                            disciple.CharacterHandler.MineMp(manaUse);
+                            var timeUse = DataCache.TimeHuytSao[1];
+                            lock (disciple.Zone.Characters)
                             {
-                                lock (c)
+                                foreach (var c in disciple.Zone.Characters.Values.Where(c => !c.InfoChar.IsDie))
                                 {
-                                    c.CharacterHandler.SendZoneMessage(Service.SkillEffectPlayer(c.Id, c.Id,1, 39));
-                                    c.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeHuytSao[0], timeUse/10));
-                                    c.InfoSkill.HuytSao.IsHuytSao = true;
-                                    c.InfoSkill.HuytSao.Percent = skillData.Damage;
-                                    c.InfoSkill.HuytSao.Time = timeUse*100 + timeServer;
-                                    c.CharacterHandler.SetHpFull();
-                                    c.CharacterHandler.SendMessage(Service.MeLoadPoint(c));
-                                    c.CharacterHandler.PlusHp((int)(c.HpFull*c.InfoSkill.HuytSao.Percent/100));
-                                    c.CharacterHandler.SendMessage(Service.SendHp((int)c.InfoChar.Hp));
-                                    c.CharacterHandler.SendZoneMessage(Service.PlayerLevel(c));
-                                }  
-                            }
-                        }
-                        lock (disciple.Zone.Disciples)
-                        {
-                            foreach (var c in disciple.Zone.Disciples.Values.Where(c => !c.InfoChar.IsDie))
-                            {
-                                lock (c)
-                                {
-                                    c.CharacterHandler.SendZoneMessage(Service.SkillEffectPlayer(c.Id, c.Id,1, 39));
-                                    c.InfoSkill.HuytSao.IsHuytSao = true;
-                                    c.InfoSkill.HuytSao.Percent = skillData.Damage;
-                                    c.InfoSkill.HuytSao.Time = timeUse*100 + timeServer;
-                                    c.CharacterHandler.SetHpFull();
-                                    c.CharacterHandler.PlusHp((int)(c.HpFull*c.InfoSkill.HuytSao.Percent/100));
-                                    c.CharacterHandler.SendZoneMessage(Service.PlayerLevel(c));
+                                    lock (c)
+                                    {
+                                        c.CharacterHandler.SendZoneMessage(Service.SkillEffectPlayer(c.Id, c.Id, 1, 39));
+                                        c.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeHuytSao[0], timeUse / 10));
+                                        c.InfoSkill.HuytSao.IsHuytSao = true;
+                                        c.InfoSkill.HuytSao.Percent = skillData.Damage;
+                                        c.InfoSkill.HuytSao.Time = timeUse * 100 + timeServer;
+                                        c.CharacterHandler.SetHpFull();
+                                        c.CharacterHandler.SendMessage(Service.MeLoadPoint(c));
+                                        c.CharacterHandler.PlusHp((int)(c.HpFull * c.InfoSkill.HuytSao.Percent / 100));
+                                        c.CharacterHandler.SendMessage(Service.SendHp((int)c.InfoChar.Hp));
+                                        c.CharacterHandler.SendZoneMessage(Service.PlayerLevel(c));
+                                    }
                                 }
                             }
+                            lock (disciple.Zone.Disciples)
+                            {
+                                foreach (var c in disciple.Zone.Disciples.Values.Where(c => !c.InfoChar.IsDie))
+                                {
+                                    lock (c)
+                                    {
+                                        c.CharacterHandler.SendZoneMessage(Service.SkillEffectPlayer(c.Id, c.Id, 1, 39));
+                                        c.InfoSkill.HuytSao.IsHuytSao = true;
+                                        c.InfoSkill.HuytSao.Percent = skillData.Damage;
+                                        c.InfoSkill.HuytSao.Time = timeUse * 100 + timeServer;
+                                        c.CharacterHandler.SetHpFull();
+                                        c.CharacterHandler.PlusHp((int)(c.HpFull * c.InfoSkill.HuytSao.Percent / 100));
+                                        c.CharacterHandler.SendZoneMessage(Service.PlayerLevel(c));
+                                    }
+                                }
+                            }
+                            break;
                         }
-                        break;
-                    }
                 }
                 disciple.CharacterHandler.MineStamina(1);
             }
@@ -867,10 +869,10 @@ namespace NRO_Server.Application.Handlers.Skill
 
                 //Get skill
                 var skillCharFocus = character.Skills.FirstOrDefault(skl => skl.Id == id);
-                if(skillCharFocus == null) return;
+                if (skillCharFocus == null) return;
                 var skillTemplate = Cache.Gi().SKILL_TEMPLATES.FirstOrDefault(skl => skl.Id == skillCharFocus.Id);
                 var skillData = skillTemplate?.SkillDataTemplates.FirstOrDefault(skl => skl.SkillId == skillCharFocus.SkillId);
-                if(skillData == null) return;
+                if (skillData == null) return;
 
                 //Check mana
                 var manaUse = skillData.ManaUse;
@@ -878,8 +880,8 @@ namespace NRO_Server.Application.Handlers.Skill
                 var manaChar = character.InfoChar.Mp;
                 manaUse = manaUseType switch
                 {
-                    1 => manaUse * (int) character.MpFull / 100,
-                    2 => (int) manaChar,
+                    1 => manaUse * (int)character.MpFull / 100,
+                    2 => (int)manaChar,
                     _ => manaUse
                 };
 
@@ -894,140 +896,141 @@ namespace NRO_Server.Application.Handlers.Skill
                 {
                     //Start Choáng
                     case 0:
-                    {
-                        if(manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
-                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                        character.CharacterHandler.MineMp(manaUse);
-
-                        var monsters = new List<IMonster>();
-                        var characters = new List<ICharacter>();
-
-                        int time = DataCache.TimeStun[skillData.Point];
-                        var timeUse = time*1000 + timeServer;
-                        lock (zone.MonsterMaps)
                         {
-                            foreach (var monsterMap in zone.MonsterMaps.Where(m => m is {IsDie: false}))
-                            {
-                                lock (monsterMap.InfoSkill.ThaiDuongHanSan)
-                                {
-                                    monsterMap.InfoSkill.ThaiDuongHanSan.IsStun = true;
-                                    monsterMap.InfoSkill.ThaiDuongHanSan.Time = timeUse;
-                                    monsterMap.InfoSkill.ThaiDuongHanSan.TimeReal = time;
-                                    character.Zone.ZoneHandler.SendMessage(Service.SkillEffectMonster(character.Id, monsterMap.IdMap, 1, 40));
-                                }
-                                monsterMap.IsDontMove = true;
-                                character.Zone.ZoneHandler.SendMessage(Service.MonsterDontMove(monsterMap.IdMap, true));
-                                monsters.Add(monsterMap); 
-                            } 
-                        }
-                        
-                        lock (zone.Characters)
-                        {
-                            foreach (var real in zone.Characters.Values.Where(c => c != null && c.Id != character.Id && !c.InfoChar.IsDie))
-                            {
-                                lock (real.InfoSkill.ThaiDuongHanSan)
-                                {
-                                    var timeReal = time;
-                                    //Cải trang Giảm thời gian choáng
-                                    if (true) timeReal -= 0;
-                                    real.InfoSkill.ThaiDuongHanSan.IsStun = true;
-                                    real.InfoSkill.ThaiDuongHanSan.Time = timeReal*1000 + timeServer;
-                                    real.InfoSkill.ThaiDuongHanSan.TimeReal = timeReal;
+                            if (manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
+                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+                            character.CharacterHandler.MineMp(manaUse);
 
-                                    zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, real.Id, 1, 40));
-                                    zone.ZoneHandler.SendMessage(Service.PublicChat(real.Id, TextServer.gI().SKILL_BLIND[ServerUtils.RandomNumber(TextServer.gI().SKILL_BLIND.Count)]));
+                            var monsters = new List<IMonster>();
+                            var characters = new List<ICharacter>();
+
+                            int time = DataCache.TimeStun[skillData.Point];
+                            var timeUse = time * 1000 + timeServer;
+                            lock (zone.MonsterMaps)
+                            {
+                                foreach (var monsterMap in zone.MonsterMaps.Where(m => m is { IsDie: false }))
+                                {
+                                    lock (monsterMap.InfoSkill.ThaiDuongHanSan)
+                                    {
+                                        monsterMap.InfoSkill.ThaiDuongHanSan.IsStun = true;
+                                        monsterMap.InfoSkill.ThaiDuongHanSan.Time = timeUse;
+                                        monsterMap.InfoSkill.ThaiDuongHanSan.TimeReal = time;
+                                        character.Zone.ZoneHandler.SendMessage(Service.SkillEffectMonster(character.Id, monsterMap.IdMap, 1, 40));
+                                    }
+                                    monsterMap.IsDontMove = true;
+                                    character.Zone.ZoneHandler.SendMessage(Service.MonsterDontMove(monsterMap.IdMap, true));
+                                    monsters.Add(monsterMap);
                                 }
-                                characters.Add(real);
                             }
-                        }
 
-                        lock (zone.Disciples)
-                        {
-                            foreach (var real in zone.Disciples.Values.Where(c => c != null && c.Id != character.Id && !c.InfoChar.IsDie))
+                            lock (zone.Characters)
                             {
-                                lock (real.InfoSkill.ThaiDuongHanSan)
+                                foreach (var real in zone.Characters.Values.Where(c => c != null && c.Id != character.Id && !c.InfoChar.IsDie))
                                 {
-                                    var timeReal = time;
-                                    //Cải trang Giảm thời gian choáng
-                                    if (true) timeReal -= 0;
-                                    real.InfoSkill.ThaiDuongHanSan.IsStun = true;
-                                    real.InfoSkill.ThaiDuongHanSan.Time = timeReal*1000 + timeServer;
-                                    real.InfoSkill.ThaiDuongHanSan.TimeReal = timeReal;
+                                    lock (real.InfoSkill.ThaiDuongHanSan)
+                                    {
+                                        var timeReal = time;
+                                        //Cải trang Giảm thời gian choáng
+                                        if (true) timeReal -= 0;
+                                        real.InfoSkill.ThaiDuongHanSan.IsStun = true;
+                                        real.InfoSkill.ThaiDuongHanSan.Time = timeReal * 1000 + timeServer;
+                                        real.InfoSkill.ThaiDuongHanSan.TimeReal = timeReal;
 
-                                    zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, real.Id, 1, 40));
-                                    zone.ZoneHandler.SendMessage(Service.PublicChat(real.Id, TextServer.gI().SKILL_BLIND[ServerUtils.RandomNumber(TextServer.gI().SKILL_BLIND.Count)]));
+                                        zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, real.Id, 1, 40));
+                                        zone.ZoneHandler.SendMessage(Service.PublicChat(real.Id, TextServer.gI().SKILL_BLIND[ServerUtils.RandomNumber(TextServer.gI().SKILL_BLIND.Count)]));
+                                    }
+                                    characters.Add(real);
                                 }
-                                characters.Add(real);
                             }
+
+                            lock (zone.Disciples)
+                            {
+                                foreach (var real in zone.Disciples.Values.Where(c => c != null && c.Id != character.Id && !c.InfoChar.IsDie))
+                                {
+                                    lock (real.InfoSkill.ThaiDuongHanSan)
+                                    {
+                                        var timeReal = time;
+                                        //Cải trang Giảm thời gian choáng
+                                        if (true) timeReal -= 0;
+                                        real.InfoSkill.ThaiDuongHanSan.IsStun = true;
+                                        real.InfoSkill.ThaiDuongHanSan.Time = timeReal * 1000 + timeServer;
+                                        real.InfoSkill.ThaiDuongHanSan.TimeReal = timeReal;
+
+                                        zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, real.Id, 1, 40));
+                                        zone.ZoneHandler.SendMessage(Service.PublicChat(real.Id, TextServer.gI().SKILL_BLIND[ServerUtils.RandomNumber(TextServer.gI().SKILL_BLIND.Count)]));
+                                    }
+                                    characters.Add(real);
+                                }
+                            }
+                            zone.ZoneHandler.SendMessage(Service.SkillNotFocus0(character.Id, skillData.SkillId, characters, monsters));
+                            break;
                         }
-                        zone.ZoneHandler.SendMessage(Service.SkillNotFocus0(character.Id, skillData.SkillId, characters, monsters));
-                        break;
-                    }
                     //START Dùng skill tái tạo năng lượng
                     case 1:
-                    {
-                        if(skillCharFocus.CoolDown > timeServer) return;
-                        zone.ZoneHandler.SendMessage(Service.SkillNotFocus1(character.Id, skillData.SkillId));
-                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                        character.InfoSkill.TaiTaoNangLuong.IsTTNL = true;
-                        character.InfoSkill.TaiTaoNangLuong.DelayTTNL = 20000 + timeServer;
-                        break;
-                    }
+                        {
+                            if (skillCharFocus.CoolDown > timeServer) return;
+                            zone.ZoneHandler.SendMessage(Service.SkillNotFocus1(character.Id, skillData.SkillId));
+                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+                            character.InfoSkill.TaiTaoNangLuong.IsTTNL = true;
+                            character.InfoSkill.TaiTaoNangLuong.DelayTTNL = 20000 + timeServer;
+                            break;
+                        }
                     //DOING Xử lý tái tạo năng lượng
                     case 2:
-                    {
-                        var hpFull = character.HpFull;
-                        var mpFull = character.MpFull;
-                        var hpNow = character.InfoChar.Hp;
-                        var mpNow = character.InfoChar.Mp;
-                        var percentHp = (int)((hpFull- hpNow)*100/character.HpFull);
-                        var percentMp = (int)((mpFull - mpNow)*100/character.HpFull);
-                        if(percentHp > 30 || percentMp > 30) {
-                            zone.ZoneHandler.SendMessage(Service.PublicChat(character.Id, $"Tái tạo năng lượng: {(percentHp > percentMp ? percentHp : percentMp)}%"));
-                        }
-
-                        if (hpNow < hpFull)
                         {
-                            character.CharacterHandler.PlusHp((int)(skillData.Damage * hpFull / 100));
-                            zone.ZoneHandler.SendMessage(Service.PlayerLevel(character));
-                        }
+                            var hpFull = character.HpFull;
+                            var mpFull = character.MpFull;
+                            var hpNow = character.InfoChar.Hp;
+                            var mpNow = character.InfoChar.Mp;
+                            var percentHp = (int)((hpFull - hpNow) * 100 / character.HpFull);
+                            var percentMp = (int)((mpFull - mpNow) * 100 / character.HpFull);
+                            if (percentHp > 30 || percentMp > 30)
+                            {
+                                zone.ZoneHandler.SendMessage(Service.PublicChat(character.Id, $"Tái tạo năng lượng: {(percentHp > percentMp ? percentHp : percentMp)}%"));
+                            }
 
-                        if (mpNow < mpFull)
-                        {
-                            character.CharacterHandler.PlusMp((int)(skillData.Damage * mpFull / 100));
-                        }
+                            if (hpNow < hpFull)
+                            {
+                                character.CharacterHandler.PlusHp((int)(skillData.Damage * hpFull / 100));
+                                zone.ZoneHandler.SendMessage(Service.PlayerLevel(character));
+                            }
 
-                        if (character.InfoSkill.TaiTaoNangLuong.IsTTNL && character.InfoSkill.TaiTaoNangLuong.Crit <= 0)
-                        {
-                            character.InfoSkill.TaiTaoNangLuong.Crit = ServerUtils.RandomNumber(3);
-                        }
+                            if (mpNow < mpFull)
+                            {
+                                character.CharacterHandler.PlusMp((int)(skillData.Damage * mpFull / 100));
+                            }
 
-                        if (character.InfoChar.Hp == hpFull && character.InfoChar.Mp == mpFull)
-                        {
-                            RemoveTTNL(character, skillTemplate.Id);
+                            if (character.InfoSkill.TaiTaoNangLuong.IsTTNL && character.InfoSkill.TaiTaoNangLuong.Crit <= 0)
+                            {
+                                character.InfoSkill.TaiTaoNangLuong.Crit = ServerUtils.RandomNumber(3);
+                            }
+
+                            if (character.InfoChar.Hp == hpFull && character.InfoChar.Mp == mpFull)
+                            {
+                                RemoveTTNL(character, skillTemplate.Id);
+                            }
+                            break;
                         }
-                        break;
-                    }
                     //STOP Dừng tái tạo năng lượng
                     case 3:
-                    {
-                        RemoveTTNL(character, skillTemplate.Id);
-                        break;
-                    }
+                        {
+                            RemoveTTNL(character, skillTemplate.Id);
+                            break;
+                        }
                     //Lá chắn
                     case 9:
-                    {
-                        if(manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
-                        character.CharacterHandler.MineMp(manaUse);
-                     
-                        skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
-                        var timeUse = DataCache.TimeProtect[skillData.Point];
-                        zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, character.Id, 1, 33));
-                        character.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeProtect[0], timeUse/10));
-                        character.InfoSkill.Protect.IsProtect = true;
-                        character.InfoSkill.Protect.Time = timeUse*100 + timeServer;
-                        break;
-                    }
+                        {
+                            if (manaUse > manaChar || skillCharFocus.CoolDown > timeServer) return;
+                            character.CharacterHandler.MineMp(manaUse);
+
+                            skillCharFocus.CoolDown = skillData.CoolDown + timeServer;
+                            var timeUse = DataCache.TimeProtect[skillData.Point];
+                            zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, character.Id, 1, 33));
+                            character.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeProtect[0], timeUse / 10));
+                            character.InfoSkill.Protect.IsProtect = true;
+                            character.InfoSkill.Protect.Time = timeUse * 100 + timeServer;
+                            break;
+                        }
                 }
                 character.CharacterHandler.MineStamina(1);
             }
@@ -1075,7 +1078,7 @@ namespace NRO_Server.Application.Handlers.Skill
                             return;
                         }
                     }
-                    else 
+                    else
                     {
                         charRel.InfoMore.BuaBatTu = false;
                     }
@@ -1083,11 +1086,11 @@ namespace NRO_Server.Application.Handlers.Skill
 
                 if (character.InfoChar.CSkill == -1)
                 {
-                    character.InfoChar.CSkill = (short) (character.InfoChar.Gender * 2);
+                    character.InfoChar.CSkill = (short)(character.InfoChar.Gender * 2);
                 }
 
                 var skillChar = character.Skills.FirstOrDefault(skl => skl.Id == character.InfoChar.CSkill);
-                if (skillChar == null) 
+                if (skillChar == null)
                 {
                     skillChar = character.Skills[0];
                 }
@@ -1099,7 +1102,7 @@ namespace NRO_Server.Application.Handlers.Skill
 
                 var zone = character.Zone;
                 if (zone == null) return;
-                
+
                 var skillTemplate = Cache.Gi().SKILL_TEMPLATES.FirstOrDefault(skl => skl.Id == skillChar.Id);
                 var skillData =
                     skillTemplate?.SkillDataTemplates.FirstOrDefault(skl => skl.SkillId == skillChar.SkillId);
@@ -1113,8 +1116,8 @@ namespace NRO_Server.Application.Handlers.Skill
                 var manaChar = character.InfoChar.Mp;
                 manaUse = manaUseType switch
                 {
-                    1 => manaUse * (int) character.MpFull / 100,
-                    2 => (int) manaChar,
+                    1 => manaUse * (int)character.MpFull / 100,
+                    2 => (int)manaChar,
                     _ => manaUse
                 };
 
@@ -1127,7 +1130,7 @@ namespace NRO_Server.Application.Handlers.Skill
 
                 //get monster id
                 var modId = message.Reader.ReadUnsignedByte();
-                IMonster monsterAtt; 
+                IMonster monsterAtt;
                 if (modId == 255)
                 {
                     var petId = message.Reader.ReadInt();
@@ -1138,14 +1141,14 @@ namespace NRO_Server.Application.Handlers.Skill
                     monsterAtt = zone.ZoneHandler.GetMonsterMap(modId);
                 }
                 var listMonster = new List<IMonster>();
-                if (monsterAtt is not {IsDie: false}) return;
-                
+                if (monsterAtt is not { IsDie: false }) return;
+
                 listMonster.Add(monsterAtt);
                 var fightSize = 1;
                 while (message.Reader.Available() > 0)
                 {
                     var mobNext = zone.ZoneHandler.GetMonsterMap(message.Reader.ReadUnsignedByte());
-                    if (mobNext is not {IsDie: false} || mobNext.IdMap == monsterAtt.IdMap) continue;
+                    if (mobNext is not { IsDie: false } || mobNext.IdMap == monsterAtt.IdMap) continue;
                     fightSize += 1;
                     if (fightSize >= skillData.MaxFight)
                     {
@@ -1159,149 +1162,149 @@ namespace NRO_Server.Application.Handlers.Skill
                 {
                     //kaioken
                     case 9:
-                    {
-                        if(character.InfoChar.Gender != 0) return;
-                        var hpMine = character.HpFull / 10;
-                        if (hpMine >= character.InfoChar.Hp)
                         {
-                            character.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().NOT_ENOUGH_HP));
-                            return;
+                            if (character.InfoChar.Gender != 0) return;
+                            var hpMine = character.HpFull / 10;
+                            if (hpMine >= character.InfoChar.Hp)
+                            {
+                                character.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().NOT_ENOUGH_HP));
+                                return;
+                            }
+                            character.CharacterHandler.MineHp(hpMine);
+                            character.CharacterHandler.SendMessage(Service.SendHp((int)character.InfoChar.Hp));
+                            zone.ZoneHandler.SendMessage(Service.PlayerLevel(character));
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster, skillData.SkillId));
+                            HandlePlayerAttackMonster(character, skillChar, skillData, listMonster);
+                            break;
                         }
-                        character.CharacterHandler.MineHp(hpMine);
-                        character.CharacterHandler.SendMessage(Service.SendHp((int)character.InfoChar.Hp));
-                        zone.ZoneHandler.SendMessage(Service.PlayerLevel(character));
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster, skillData.SkillId));
-                        HandlePlayerAttackMonster(character, skillChar, skillData, listMonster);
-                        break;
-                    } 
                     //QCKK
                     case 10:
-                    {
-                        if(character.InfoChar.Gender != 0 || character.InfoSkill.Qckk.Time > timeServer) return;
-                        var damage = ServerUtils.RandomNumber(character.DamageFull * 9 / 10, character.DamageFull);
-                        damage *= (skillData.Damage + character.InfoSkill.Qckk.ListId.Count*10) / 100;
-
-                        if (charRel.InfoSet.IsFullSetKirin)
                         {
-                            damage*=2;
-                        }
+                            if (character.InfoChar.Gender != 0 || character.InfoSkill.Qckk.Time > timeServer) return;
+                            var damage = ServerUtils.RandomNumber(character.DamageFull * 9 / 10, character.DamageFull);
+                            damage *= (skillData.Damage + character.InfoSkill.Qckk.ListId.Count * 10) / 100;
 
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster, skillData.SkillId));
-                        HandlePlayerAttackMonster(character, skillChar, skillData, listMonster, damage:damage);
-
-                        var specialId = charRel.SpecialSkill.Id;
-                        if (specialId == 3)
-                        {
-                            var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown*charRel.SpecialSkill.Value)/100);
-                            skillChar.CoolDown = thoiGianHoiChieu + timeServer;
-                            if (skillChar.CoolDown < 0)
+                            if (charRel.InfoSet.IsFullSetKirin)
                             {
-                                skillChar.CoolDown = 500;
+                                damage *= 2;
                             }
-                            character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
+
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster, skillData.SkillId));
+                            HandlePlayerAttackMonster(character, skillChar, skillData, listMonster, damage: damage);
+
+                            var specialId = charRel.SpecialSkill.Id;
+                            if (specialId == 3)
+                            {
+                                var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown * charRel.SpecialSkill.Value) / 100);
+                                skillChar.CoolDown = thoiGianHoiChieu + timeServer;
+                                if (skillChar.CoolDown < 0)
+                                {
+                                    skillChar.CoolDown = 500;
+                                }
+                                character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
+                            }
+                            break;
                         }
-                        break;
-                    }
                     //Makankosappo
                     case 11:
-                    {
-                        if (character.InfoChar.Gender != 1 || character.InfoSkill.Laze.Time > timeServer || !character.InfoSkill.Laze.Hold) return;
-                        long damage = (long)((long)manaUse*skillData.Damage / 100);
-
-                        if (character.InfoSet.IsFullSetPicolo)
                         {
-                            damage += damage*50/100;
-                        }
-                        character.InfoSkill.Laze.Hold = false;
-                        Server.Gi().Logger.Debug($"Check ---------------------- attack monster by Makankosappo with damage: {damage}");
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster, skillData.SkillId));
-                        HandlePlayerAttackMonster(character, skillChar, skillData, listMonster, damage:Math.Abs(((long)damage)));
+                            if (character.InfoChar.Gender != 1 || character.InfoSkill.Laze.Time > timeServer || !character.InfoSkill.Laze.Hold) return;
+                            long damage = (long)((long)manaUse * skillData.Damage / 100);
 
-                        var specialId = charRel.SpecialSkill.Id;
-                        if (specialId == 13)
-                        {
-                            var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown*charRel.SpecialSkill.Value)/100);
-                            skillChar.CoolDown = thoiGianHoiChieu + timeServer;
-                            if (skillChar.CoolDown < 0)
+                            if (character.InfoSet.IsFullSetPicolo)
                             {
-                                skillChar.CoolDown = 500;
+                                damage += damage * 50 / 100;
                             }
-                            character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
+                            character.InfoSkill.Laze.Hold = false;
+                            Server.Gi().Logger.Debug($"Check ---------------------- attack monster by Makankosappo with damage: {damage}");
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster, skillData.SkillId));
+                            HandlePlayerAttackMonster(character, skillChar, skillData, listMonster, damage: Math.Abs(((long)damage)));
+
+                            var specialId = charRel.SpecialSkill.Id;
+                            if (specialId == 13)
+                            {
+                                var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown * charRel.SpecialSkill.Value) / 100);
+                                skillChar.CoolDown = thoiGianHoiChieu + timeServer;
+                                if (skillChar.CoolDown < 0)
+                                {
+                                    skillChar.CoolDown = 500;
+                                }
+                                character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
+                            }
+                            break;
                         }
-                        break;
-                    }
                     //Biến Sôcôla
                     case 18:
-                    {
-                        if(character.InfoChar.Gender != 1) return;
-                        if(listMonster[0] != null && listMonster[0].IsMobMe) return;
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster,skillData.SkillId));
-                        HandleSocolaMonster(character, listMonster, skillData);
-
-                        // Kiểm tra có nội tại Sô cô la không
-                        var specialId = charRel.SpecialSkill.Id;
-                        if (specialId != -1 && charRel.SpecialSkill.SkillId == 18)
                         {
-                            charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                            if (character.InfoChar.Gender != 1) return;
+                            if (listMonster[0] != null && listMonster[0].IsMobMe) return;
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster, skillData.SkillId));
+                            HandleSocolaMonster(character, listMonster, skillData);
+
+                            // Kiểm tra có nội tại Sô cô la không
+                            var specialId = charRel.SpecialSkill.Id;
+                            if (specialId != -1 && charRel.SpecialSkill.SkillId == 18)
+                            {
+                                charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                            }
+                            break;
                         }
-                        break;
-                    }
                     //Dich chuyen tuc thoi
                     case 20:
-                    {
-                        if (character.InfoChar.Gender != 0) return;
-                        if (listMonster[0] != null && !listMonster[0].IsMobMe)
                         {
-                            HandleDichChuyenMonster(character, listMonster, skillData);
-                        }
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster,skillData.SkillId));
-                        HandlePlayerAttackMonster(character, skillChar, skillData, listMonster, damage:character.DamageFull, isCrit:true);
+                            if (character.InfoChar.Gender != 0) return;
+                            if (listMonster[0] != null && !listMonster[0].IsMobMe)
+                            {
+                                HandleDichChuyenMonster(character, listMonster, skillData);
+                            }
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster, skillData.SkillId));
+                            HandlePlayerAttackMonster(character, skillChar, skillData, listMonster, damage: character.DamageFull, isCrit: true);
 
-                        var specialId = charRel.SpecialSkill.Id;
-                        if (specialId != -1 && charRel.SpecialSkill.SkillId == 20)
-                        {
-                            charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
-                        }
+                            var specialId = charRel.SpecialSkill.Id;
+                            if (specialId != -1 && charRel.SpecialSkill.SkillId == 20)
+                            {
+                                charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                            }
 
-                        charRel.SpecialSkill.isCrit = true;
-                        break;
-                    }
+                            charRel.SpecialSkill.isCrit = true;
+                            break;
+                        }
                     //Thôi miên
                     case 22:
-                    {
-                        if(character.InfoChar.Gender != 0) return;
-                        if(listMonster[0] != null && listMonster[0].IsMobMe) return;
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster,skillData.SkillId));
-                        HandleThoiMienMonster(character, skillData, listMonster);
-
-                        var specialId = charRel.SpecialSkill.Id;
-                        if (specialId != -1 && charRel.SpecialSkill.SkillId == 22)
                         {
-                            charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                            if (character.InfoChar.Gender != 0) return;
+                            if (listMonster[0] != null && listMonster[0].IsMobMe) return;
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster, skillData.SkillId));
+                            HandleThoiMienMonster(character, skillData, listMonster);
+
+                            var specialId = charRel.SpecialSkill.Id;
+                            if (specialId != -1 && charRel.SpecialSkill.SkillId == 22)
+                            {
+                                charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                            }
+                            break;
                         }
-                        break;
-                    }
                     //Skill trói xayda
                     case 23:
-                    {
-                        if(character.InfoChar.Gender != 2) return;
-                        if(listMonster[0] != null && listMonster[0].IsMobMe) return;
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster,skillData.SkillId));
-                        HandleTroiMonster(character, skillData, listMonster);
-
-                        var specialId = charRel.SpecialSkill.Id;
-                        if (specialId != -1 && charRel.SpecialSkill.SkillId == 23)
                         {
-                            charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                            if (character.InfoChar.Gender != 2) return;
+                            if (listMonster[0] != null && listMonster[0].IsMobMe) return;
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster, skillData.SkillId));
+                            HandleTroiMonster(character, skillData, listMonster);
+
+                            var specialId = charRel.SpecialSkill.Id;
+                            if (specialId != -1 && charRel.SpecialSkill.SkillId == 23)
+                            {
+                                charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                            }
+                            break;
                         }
-                        break;
-                    }
                     default:
-                    {
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster,skillData.SkillId));
-                        HandlePlayerAttackMonster(character, skillChar, skillData, listMonster);
-                        break;
-                    }
+                        {
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(character.Id, listMonster, skillData.SkillId));
+                            HandlePlayerAttackMonster(character, skillChar, skillData, listMonster);
+                            break;
+                        }
                 }
                 character.CharacterHandler.MineStamina(1);
             }
@@ -1342,12 +1345,12 @@ namespace NRO_Server.Application.Handlers.Skill
                 var manaChar = disciple.InfoChar.Mp;
                 manaUse = manaUseType switch
                 {
-                    1 => manaUse * (int) disciple.MpFull / 100,
-                    2 => (int) manaChar,
+                    1 => manaUse * (int)disciple.MpFull / 100,
+                    2 => (int)manaChar,
                     _ => manaUse
                 };
 
-      
+
                 var timeServer = ServerUtils.CurrentTimeMillis();
                 if (manaUse > manaChar || skillChar.CoolDown > timeServer) return;
                 else
@@ -1357,106 +1360,106 @@ namespace NRO_Server.Application.Handlers.Skill
                     {
                         skillChar.CoolDown = 1000;
                     }
-                    else 
+                    else
                     {
-                        skillChar.CoolDown = (skillData.CoolDown/2) + timeServer;
+                        skillChar.CoolDown = (skillData.CoolDown / 2) + timeServer;
                     }
                 }
 
                 //get monster id
-                var monsterAtt = zone.ZoneHandler.GetMonsterMap(modId) ?? (IMonster) zone.ZoneHandler.GetMonsterPet(modId);
+                var monsterAtt = zone.ZoneHandler.GetMonsterMap(modId) ?? (IMonster)zone.ZoneHandler.GetMonsterPet(modId);
 
                 var listMonster = new List<IMonster>();
-                if (monsterAtt is not {IsDie: false}) return;
+                if (monsterAtt is not { IsDie: false }) return;
                 listMonster.Add(monsterAtt);
                 //Handling player attack with skill
                 switch (skillTemplate.Id)
                 {
                     //kaioken
                     case 9:
-                    {
-                        var hpMine = disciple.HpFull / 10;
-                        if (hpMine >= disciple.InfoChar.Hp)
                         {
-                            disciple.Character.CharacterHandler.SendMessage(Service.PublicChat(disciple.Id, TextServer.gI().NOT_ENOUGH_HP_DISCIPLE));
-                            return;
+                            var hpMine = disciple.HpFull / 10;
+                            if (hpMine >= disciple.InfoChar.Hp)
+                            {
+                                disciple.Character.CharacterHandler.SendMessage(Service.PublicChat(disciple.Id, TextServer.gI().NOT_ENOUGH_HP_DISCIPLE));
+                                return;
+                            }
+                            disciple.CharacterHandler.MineHp(hpMine);
+                            disciple.CharacterHandler.SendMessage(Service.PlayerLevel(disciple));
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster, skillData.SkillId));
+                            HandlePlayerAttackMonster(disciple, skillChar, skillData, listMonster);
+                            break;
                         }
-                        disciple.CharacterHandler.MineHp(hpMine);
-                        disciple.CharacterHandler.SendMessage(Service.PlayerLevel(disciple));
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster, skillData.SkillId));
-                        HandlePlayerAttackMonster(disciple, skillChar, skillData, listMonster);
-                        break;
-                    } 
                     //QCKK
                     case 10:
-                    {
-                        if(disciple.InfoSkill.Qckk.Time > timeServer) return;
-                        var damage = ServerUtils.RandomNumber(disciple.DamageFull * 9 / 10, disciple.DamageFull);
-                        damage *= (skillData.Damage + disciple.InfoSkill.Qckk.ListId.Count*10) / 100;
-                        if (disciple.InfoSet.IsFullSetKirin)
                         {
-                            damage*=2;
+                            if (disciple.InfoSkill.Qckk.Time > timeServer) return;
+                            var damage = ServerUtils.RandomNumber(disciple.DamageFull * 9 / 10, disciple.DamageFull);
+                            damage *= (skillData.Damage + disciple.InfoSkill.Qckk.ListId.Count * 10) / 100;
+                            if (disciple.InfoSet.IsFullSetKirin)
+                            {
+                                damage *= 2;
+                            }
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster, skillData.SkillId));
+                            HandlePlayerAttackMonster(disciple, skillChar, skillData, listMonster, damage: damage);
+                            break;
                         }
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster, skillData.SkillId));
-                        HandlePlayerAttackMonster(disciple, skillChar, skillData, listMonster, damage:damage);
-                        break;
-                    }
                     //Makankosappo
                     case 11:
-                    {
-                        if (disciple.InfoSkill.Laze.Time > timeServer || !disciple.InfoSkill.Laze.Hold) return;
-                        long damage = (long)((long)manaUse*skillData.Damage / 100);
-                        disciple.InfoSkill.Laze.Hold = false;
-                        if (disciple.InfoSet.IsFullSetPicolo)
                         {
-                            damage += damage*50/100;
+                            if (disciple.InfoSkill.Laze.Time > timeServer || !disciple.InfoSkill.Laze.Hold) return;
+                            long damage = (long)((long)manaUse * skillData.Damage / 100);
+                            disciple.InfoSkill.Laze.Hold = false;
+                            if (disciple.InfoSet.IsFullSetPicolo)
+                            {
+                                damage += damage * 50 / 100;
+                            }
+                            Server.Gi().Logger.Debug($"Check ---------------------- attack monster by Makankosappo with damage: {damage}");
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster, skillData.SkillId));
+                            HandlePlayerAttackMonster(disciple, skillChar, skillData, listMonster, damage: Math.Abs((long)damage));
+                            break;
                         }
-                        Server.Gi().Logger.Debug($"Check ---------------------- attack monster by Makankosappo with damage: {damage}");
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster, skillData.SkillId));
-                        HandlePlayerAttackMonster(disciple, skillChar, skillData, listMonster, damage:Math.Abs((long)damage));
-                        break;
-                    }
                     //Biến Sôcôla
                     case 18:
-                    {
-                        if(listMonster[0] != null && listMonster[0].IsMobMe) return;
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster,skillData.SkillId));
-                        HandleSocolaMonster(disciple, listMonster, skillData);
-                        break;
-                    }
+                        {
+                            if (listMonster[0] != null && listMonster[0].IsMobMe) return;
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster, skillData.SkillId));
+                            HandleSocolaMonster(disciple, listMonster, skillData);
+                            break;
+                        }
                     //Dich chuyen tuc thoi
                     case 20:
-                    {
-                        if (listMonster[0] != null && !listMonster[0].IsMobMe)
                         {
-                            HandleDichChuyenMonster(disciple, listMonster, skillData);
+                            if (listMonster[0] != null && !listMonster[0].IsMobMe)
+                            {
+                                HandleDichChuyenMonster(disciple, listMonster, skillData);
+                            }
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster, skillData.SkillId));
+                            HandlePlayerAttackMonster(disciple, skillChar, skillData, listMonster);
+                            break;
                         }
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster,skillData.SkillId));
-                        HandlePlayerAttackMonster(disciple, skillChar, skillData, listMonster);
-                        break;
-                    }
                     //Thôi miên
                     case 22:
-                    {
-                        if(listMonster[0] != null && listMonster[0].IsMobMe) return;
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster,skillData.SkillId));
-                        HandleThoiMienMonster(disciple, skillData, listMonster);
-                        break;
-                    }
+                        {
+                            if (listMonster[0] != null && listMonster[0].IsMobMe) return;
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster, skillData.SkillId));
+                            HandleThoiMienMonster(disciple, skillData, listMonster);
+                            break;
+                        }
                     //Skill trói xayda
                     case 23:
-                    {
-                        if(listMonster[0] != null && listMonster[0].IsMobMe) return;
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster,skillData.SkillId));
-                        HandleTroiMonster(disciple, skillData, listMonster);
-                        break;
-                    }
+                        {
+                            if (listMonster[0] != null && listMonster[0].IsMobMe) return;
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster, skillData.SkillId));
+                            HandleTroiMonster(disciple, skillData, listMonster);
+                            break;
+                        }
                     default:
-                    {
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster,skillData.SkillId));
-                        HandlePlayerAttackMonster(disciple, skillChar, skillData, listMonster);
-                        break;
-                    }
+                        {
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackMonster(disciple.Id, listMonster, skillData.SkillId));
+                            HandlePlayerAttackMonster(disciple, skillChar, skillData, listMonster);
+                            break;
+                        }
                 }
                 disciple.CharacterHandler.MineStamina(1);
             }
@@ -1466,7 +1469,7 @@ namespace NRO_Server.Application.Handlers.Skill
             }
         }
 
-        public static void HandlePlayerAttackMonster(ICharacter character, SkillCharacter skillChar, SkillDataTemplate skillDataTemplate, IEnumerable<IMonster> monsters, long damage = 0, bool isCrit = false)  
+        public static void HandlePlayerAttackMonster(ICharacter character, SkillCharacter skillChar, SkillDataTemplate skillDataTemplate, IEnumerable<IMonster> monsters, long damage = 0, bool isCrit = false)
         {
             // Update giáp luyện tập
             character.CharacterHandler.UpdateLuyenTap();
@@ -1487,28 +1490,28 @@ namespace NRO_Server.Application.Handlers.Skill
                 {
                     if (charRel.InfoMore.BuaManhMeTime > timeServer)
                     {
-                        dmgFull = dmgFull*150/100;
+                        dmgFull = dmgFull * 150 / 100;
                     }
-                    else 
+                    else
                     {
                         charRel.InfoMore.BuaManhMe = false;
                     }
                 }
 
                 damage = ServerUtils.RandomNumber(dmgFull * 9 / 10, dmgFull);
-                damage = damage*skillDataTemplate.Damage / 100;
+                damage = damage * skillDataTemplate.Damage / 100;
 
                 // Nội tại các chiêu đấm
                 if (character.Id > 0)
                 {
-                    if (skillChar == null) 
+                    if (skillChar == null)
                     {
                         skillChar = character.Skills[0];
                     }
                     var specialId = charRel.SpecialSkill.Id;
                     if (specialId != -1 && DataCache.SpecialSkillTSD.Contains(charRel.SpecialSkill.SkillId) && charRel.SpecialSkill.SkillId == skillChar.Id)
                     {
-                        damage += damage*charRel.SpecialSkill.Value/100;
+                        damage += damage * charRel.SpecialSkill.Value / 100;
                     }
                     if (skillChar.Id == 1 && character.InfoSet.IsFullSetSongoku)
                     {
@@ -1537,12 +1540,12 @@ namespace NRO_Server.Application.Handlers.Skill
                 {
                     damage = 0;
                 }
-                else 
+                else
                 {
                     damage -= reduceDamage;
                 }
             }
-            
+
             if (character.InfoSkill.TaiTaoNangLuong.Crit > 0)
             {
                 character.InfoSkill.TaiTaoNangLuong.Crit--;
@@ -1556,7 +1559,7 @@ namespace NRO_Server.Application.Handlers.Skill
                 {
                     damage = 0;
                 }
-                else 
+                else
                 {
                     damage -= reduceDamage;
                 }
@@ -1578,7 +1581,7 @@ namespace NRO_Server.Application.Handlers.Skill
                 var specialId = charRel.SpecialSkill.Id;
                 if (charRel.SpecialSkill.nextAttackDmgPercent > 0)
                 {
-                    damage += damage*charRel.SpecialSkill.nextAttackDmgPercent/100;
+                    damage += damage * charRel.SpecialSkill.nextAttackDmgPercent / 100;
                     charRel.SpecialSkill.nextAttackDmgPercent = 0;
                 }
                 // Nội tại chí mạng liên tục
@@ -1586,12 +1589,12 @@ namespace NRO_Server.Application.Handlers.Skill
                 {
                     var hpFull = character.HpFull;
                     var hpNow = character.InfoChar.Hp;
-                    var percentHp = 100 - ((int)((hpFull- hpNow)*100/character.HpFull));
+                    var percentHp = 100 - ((int)((hpFull - hpNow) * 100 / character.HpFull));
                     if (percentHp <= charRel.SpecialSkill.Value)
                     {
                         isCrit = true;
                     }
-                    else 
+                    else
                     {
                         isCrit = false;
                     }
@@ -1615,7 +1618,7 @@ namespace NRO_Server.Application.Handlers.Skill
                     {
                         damage *= 2;
                     }
-                    else 
+                    else
                     {
                         discipleReal.Character.InfoMore.BuaDeTu = false;
                     }
@@ -1623,8 +1626,8 @@ namespace NRO_Server.Application.Handlers.Skill
             }
 
             int damageMonsterAfterHandle = 0;
-            
-            monsters.Where(monster => monster is {IsDie: false})
+
+            monsters.Where(monster => monster is { IsDie: false })
                 .ToList()
                 .ForEach(monster =>
             {
@@ -1632,27 +1635,27 @@ namespace NRO_Server.Application.Handlers.Skill
                 {
                     if (!monster.IsMobMe)
                     {
-                        if(Math.Abs(character.InfoChar.X - monster.X) > skillDataTemplate.Dx && Math.Abs(character.InfoChar.Y - monster.Y) > skillDataTemplate.Dy) 
+                        if (Math.Abs(character.InfoChar.X - monster.X) > skillDataTemplate.Dx && Math.Abs(character.InfoChar.Y - monster.Y) > skillDataTemplate.Dy)
                         {
                             return;
                         }
                     }
                     else
                     {
-                        if(Math.Abs(character.InfoChar.X - monster.X) > skillDataTemplate.Dx) return;
+                        if (Math.Abs(character.InfoChar.X - monster.X) > skillDataTemplate.Dx) return;
                         var charMonster = (Model.Character.Character)character.Zone.ZoneHandler.GetCharacter(monster.IdMap);
-                        if(charMonster == null) return;
+                        if (charMonster == null) return;
                         if (charMonster.Id > 0)
                         {
-                            if(charMonster.Test.IsTest && charMonster.Test.TestCharacterId != character.Id) return;
+                            if (charMonster.Test.IsTest && charMonster.Test.TestCharacterId != character.Id) return;
                         }
                         else
                         {
-                            if(charMonster.Test.IsTest && charMonster.Test.TestCharacterId != -character.Id) return;
+                            if (charMonster.Test.IsTest && charMonster.Test.TestCharacterId != -character.Id) return;
                         }
-                        
-                        if(charMonster.InfoChar.TypePk == 0 && charMonster.Flag == 0) return;
-                        if(charMonster.Flag != 0 && charMonster.Flag != 8 && charMonster.Flag == character.Flag) return;
+
+                        if (charMonster.InfoChar.TypePk == 0 && charMonster.Flag == 0) return;
+                        if (charMonster.Flag != 0 && charMonster.Flag != 8 && charMonster.Flag == character.Flag) return;
                     }
 
                     if (monster.LvBoss == 1)
@@ -1661,7 +1664,7 @@ namespace NRO_Server.Application.Handlers.Skill
                             damage = (int)monster.HpMax / 20;
                     }
 
-                    if(skillChar != null && monster.InfoSkill.PlayerTroi.IsPlayerTroi && monster.InfoSkill.PlayerTroi.TimeTroi > timeServer &&DataCache.SpecialSkillTSD.Contains(skillChar.Id))
+                    if (skillChar != null && monster.InfoSkill.PlayerTroi.IsPlayerTroi && monster.InfoSkill.PlayerTroi.TimeTroi > timeServer && DataCache.SpecialSkillTSD.Contains(skillChar.Id))
                     {
                         isCrit = true;
                     }
@@ -1677,13 +1680,13 @@ namespace NRO_Server.Application.Handlers.Skill
                     {
                         damage = 0;
                     }
-                     if (Math.Abs(character.InfoChar.X - monster.X) < (skillDataTemplate.Dx+10))
-                     {
-                     }
-                     else if(percentMiss < 30)
-                     {
-                         damage = 0;
-                     }
+                    if (Math.Abs(character.InfoChar.X - monster.X) < (skillDataTemplate.Dx + 10))
+                    {
+                    }
+                    else if (percentMiss < 30)
+                    {
+                        damage = 0;
+                    }
 
                     damageMonsterAfterHandle = monster.MonsterHandler.UpdateHp(damage, character.Id);
 
@@ -1697,10 +1700,10 @@ namespace NRO_Server.Application.Handlers.Skill
                         character.CharacterHandler.SendZoneMessage(Service.MonsterHp(monster, isCrit, damageMonsterAfterHandle, -1));
                         character.CharacterHandler.PlusPoint(monster, damageMonsterAfterHandle);
                     }
-                    
+
                     //Monster Pet
                     var pet = character.InfoSkill.Egg.Monster;
-                    if (pet is {IsDie: false})
+                    if (pet is { IsDie: false })
                     {
                         int damageMonsterPetAfterHandle = pet.MonsterHandler.PetAttackMonster(monster);
                         character.CharacterHandler.PlusPoint(monster, damageMonsterPetAfterHandle);
@@ -1709,650 +1712,650 @@ namespace NRO_Server.Application.Handlers.Skill
                     if (monster.IsDie)
                     {
                         monster.MonsterHandler.LeaveItem(character);
-						var task = character.InfoChar.Task;
-						switch(task.Id)
-						{
-							case 1:
-							{
-								if(task.Index == 0)
-								{
-									if(monster.Id != 0)
-									{
-										break;
-									}
-									else if(monster.Id == 0 && task.Count < 4)
-									{
-										task.Count++;
-										character.CharacterHandler.SendMessage(Service.SendTask(character));
-									}
-									else
-									{
-										task.Index++;
-										task.Count = 0;
-										character.CharacterHandler.SendMessage(Service.SendTask(character));
-									}
-								}
-								break;
-							}
-							case 4:
-							{
-								switch(character.InfoChar.Gender)
-								{
-									case 0:
-									{
-										switch(task.Index)
-										{
-											case 0:
-											{
-												if(monster.Id != 4)
-												{
-													break;
-												}
-												else if(monster.Id == 4 && task.Count < 2)
-												{
-													task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												else
-												{
-													task.Index++;
-													task.Count = 0;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 1:
-											{
-												if(monster.Id != 5)
-												{
-													break;
-												}
-												else if(monster.Id == 5 && task.Count < 2)
-												{
-													task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												else
-												{
-													task.Index++;
-													task.Count = 0;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 2:
-											{
-												if(monster.Id != 6)
-												{
-													break;
-												}
-												else if(monster.Id == 6 && task.Count < 2)
-												{
-													task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												else
-												{
-													task.Index++;
-													task.Count = 0;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-										}
-										break;
-									}
-									case 1:
-									{
-										switch(task.Index)
-										{
-											case 0:
-											{
-												if(monster.Id != 5)
-												{
-													break;
-												}
-												else if(monster.Id == 5 && task.Count < 2)
-												{
-													task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												else
-												{
-													task.Index++;
-													task.Count = 0;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 1:
-											{
-												if(monster.Id != 6)
-												{
-													break;
-												}
-												else if(monster.Id == 6 && task.Count < 2)
-												{
-													task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												else
-												{
-													task.Index++;
-													task.Count = 0;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 2:
-											{
-												if(monster.Id != 4)
-												{
-													break;
-												}
-												else if(monster.Id == 4 && task.Count < 2)
-												{
-													task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												else
-												{
-													task.Index++;
-													task.Count = 0;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-										}
-										break;
-									}
-									case 2:
-									{
-										switch(task.Index)
-										{
-											case 0:
-											{
-												if(monster.Id != 6)
-												{
-													break;
-												}
-												else if(monster.Id == 6 && task.Count < 2)
-												{
-													task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												else
-												{
-													task.Index++;
-													task.Count = 0;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 1:
-											{
-												if(monster.Id != 4)
-												{
-													break;
-												}
-												else if(monster.Id == 4 && task.Count < 2)
-												{
-													task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												else
-												{
-													task.Index++;
-													task.Count = 0;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 2:
-											{
-												if(monster.Id != 5)
-												{
-													break;
-												}
-												else if(monster.Id == 5 && task.Count < 2)
-												{
-													task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												else
-												{
-													task.Index++;
-													task.Count = 0;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 7:
-							{
-								if(task.Index == 1)
-								{
-									if(monster.Id != 7+character.InfoChar.Gender)
-									{
-										break;
-									}
-									else if(monster.Id == 7+character.InfoChar.Gender && task.Count < 19)
-									{
-										task.Count++;
-										character.CharacterHandler.SendMessage(Service.SendTask(character));
-									}
-									else
-									{
-										task.Index++;
-										task.Count = 0;
-										character.CharacterHandler.SendMessage(Service.SendTask(character));
-									}
-								}
-								break;
-							}
-							case 14:
-							{
-								if(character.Zone.ZoneHandler.GetCharacterClanInMap(character.ClanId).Count < 3)
-								{
-									break;
-								}
-								else
-								{
-									switch(task.Index)
-									{
-										case 0:
-										{
-											if(monster.Id != 16)
-											{
-												break;
-											}
-											else if(monster.Id == 16 && task.Count < 29)
-											{
-												task.Count++;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											else
-											{
-												task.Index++;
-												task.Count = 0;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											break;
-										}
-										case 1:
-										{
-											if(monster.Id != 17)
-											{
-												break;
-											}
-											else if(monster.Id == 17 && task.Count < 29)
-											{
-												task.Count++;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											else
-											{
-												task.Index++;
-												task.Count = 0;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											break;
-										}
-										case 2:
-										{
-											if(monster.Id != 18)
-											{
-												break;
-											}
-											else if(monster.Id == 18 && task.Count < 29)
-											{
-												task.Count++;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											else
-											{
-												task.Index++;
-												task.Count = 0;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											break;
-										}
-									}
-								}
-								break;
-							}
-							case 16:
-							{
-								if(character.Zone.ZoneHandler.GetCharacterClanInMap(character.ClanId).Count < 3)
-								{
-									break;
-								}
-								else
-								{
-									switch(task.Index)
-									{
-										case 1:
-										{
-											if(monster.Id != 22)
-											{
-												break;
-											}
-											else if(monster.Id == 22 && task.Count < 29)
-											{
-												task.Count++;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											else
-											{
-												task.Index++;
-												task.Count = 0;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											break;
-										}
-										case 2:
-										{
-											if(monster.Id != 23)
-											{
-												break;
-											}
-											else if(monster.Id == 23 && task.Count < 29)
-											{
-												task.Count++;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											else
-											{
-												task.Index++;
-												task.Count = 0;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											break;
-										}
-										case 3:
-										{
-											if(monster.Id != 24)
-											{
-												break;
-											}
-											else if(monster.Id == 24 && task.Count < 29)
-											{
-												task.Count++;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											else
-											{
-												task.Index++;
-												task.Count = 0;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											break;
-										}
-									}
-								}
-								break;
-							}
-							case 18:
-							{
-									switch(task.Index)
-									{
-										case 1:
-										{
-											if(monster.Id != 27)
-											{
-												break;
-											}
-											else if(monster.Id == 27)
-											{
-												task.Index++;
-												task.Count = 0;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											break;
-										}
-										case 2:
-										{
-											if(monster.Id != 25)
-											{
-												break;
-											}
-											else if(monster.Id == 25)
-											{
-												task.Index++;
-												task.Count = 0;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											break;
-										}
-										case 3:
-										{
-											if(monster.Id != 26)
-											{
-												break;
-											}
-											else if(monster.Id == 26)
-											{
-												task.Index++;
-												task.Count = 0;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											break;
-										}
-									}
-								break;
-							}
-							case 21:
-							{
-									switch(task.Index)
-									{
-										case 1:
-										{
-											if(monster.Id != 39)
-											{
-												break;
-											}
-											else if(monster.Id == 39 && task.Count < 499)
-											{
-												task.Count++;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											else
-											{
-												task.Index++;
-												task.Count = 0;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											break;
-										}
-										case 2:
-										{
-											if(monster.Id != 40)
-											{
-												break;
-											}
-											else if(monster.Id == 40 && task.Count < 399)
-											{
-												task.Count++;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											else
-											{
-												task.Index++;
-												task.Count = 0;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											break;
-										}
-										case 3:
-										{
-											if(monster.Id != 41)
-											{
-												break;
-											}
-											else if(monster.Id == 41 && task.Count < 299)
-											{
-												task.Count++;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											else
-											{
-												task.Index++;
-												task.Count = 0;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											break;
-										}
-										case 4:
-										{
-											if(monster.Id != 42)
-											{
-												break;
-											}
-											else if(monster.Id == 42 && task.Count < 199)
-											{
-												task.Count++;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											else
-											{
-												task.Index++;
-												task.Count = 0;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											break;
-										}
-										case 5:
-										{
-											if(monster.Id != 43)
-											{
-												break;
-											}
-											else if(monster.Id == 43 && task.Count < 99)
-											{
-												task.Count++;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											else
-											{
-												task.Index++;
-												task.Count = 0;
-												character.CharacterHandler.SendMessage(Service.SendTask(character));
-											}
-											break;
-										}
-									}
-								break;
-							}
-							case 25:
-							{
-								if(task.Index == 4)
-								{
-									if(monster.Id != 58)
-									{
-										break;
-									}
-									else if(monster.Id == 58 && task.Count < 999)
-									{
-										task.Count++;
-										character.CharacterHandler.SendMessage(Service.SendTask(character));
-										if(task.Count % 50 == 0)
-										{
-											character.CharacterHandler.SendMessage(Service.ServerMessage("Tiến độ: "+task.Count+"/1000 Xên con cấp 1"));
-										}
-									}
-									else
-									{
-										task.Index++;
-										task.Count = 0;
-										character.CharacterHandler.SendMessage(Service.SendTask(character));
-									}
-								}
-								break;
-							}
-							case 26:
-							{
-								if (task.Index == 3)
-								{
-									if(monster.Id != 60)
-								    {
-										break;
-									}
-								    if(character.Zone.ZoneHandler.GetCharacterClanInMap(character.ClanId).Count < 3)
-									{
-										break;
-									}
-									else if(monster.Id == 60 && task.Count < 899)
-									{
-										task.Count++;
-										character.CharacterHandler.SendMessage(Service.SendTask(character));
-									}
-									else
-									{
-										task.Index++;
-										task.Count = 0;
-										character.CharacterHandler.SendMessage(Service.SendTask(character));
-									}
-								}
-								break;
-							}
-							case 28:
-							{
-								if(task.Index == 4)
-								{
-									if(monster.Id != 62)
-									{
-										break;
-									}
-								    if(character.Zone.ZoneHandler.GetCharacterClanInMap(character.ClanId).Count < 3)
-									{
-										break;
-									}
-									else if(monster.Id == 62 && task.Count < 799)
-									{
-										task.Count++;
-										character.CharacterHandler.SendMessage(Service.SendTask(character));
-									}
-									else
-									{
-										task.Index++;
-										task.Count = 0;
-										character.CharacterHandler.SendMessage(Service.SendTask(character));
-									}
-								}
-								break;
-							}
-							case 29:
-							{
-								if(task.Index == 4)
-								{
-									if(monster.Id != 65)
-									{
-										break;
-									}
-								    if(character.Zone.ZoneHandler.GetCharacterClanInMap(character.ClanId).Count < 3)
-									{
-										break;
-									}
-									else if(monster.Id == 65 && task.Count < 699)
-									{
-										task.Count++;
-										character.CharacterHandler.SendMessage(Service.SendTask(character));
-									}
-									else
-									{
-										task.Index++;
-										task.Count = 0;
-										character.CharacterHandler.SendMessage(Service.SendTask(character));
-									}
-								}
-								break;
-							}
-						}
+                        var task = character.InfoChar.Task;
+                        switch (task.Id)
+                        {
+                            case 1:
+                                {
+                                    if (task.Index == 0)
+                                    {
+                                        if (monster.Id != 0)
+                                        {
+                                            break;
+                                        }
+                                        else if (monster.Id == 0 && task.Count < 4)
+                                        {
+                                            task.Count++;
+                                            character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                        }
+                                        else
+                                        {
+                                            task.Index++;
+                                            task.Count = 0;
+                                            character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                        }
+                                    }
+                                    break;
+                                }
+                            case 4:
+                                {
+                                    switch (character.InfoChar.Gender)
+                                    {
+                                        case 0:
+                                            {
+                                                switch (task.Index)
+                                                {
+                                                    case 0:
+                                                        {
+                                                            if (monster.Id != 4)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (monster.Id == 4 && task.Count < 2)
+                                                            {
+                                                                task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            else
+                                                            {
+                                                                task.Index++;
+                                                                task.Count = 0;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case 1:
+                                                        {
+                                                            if (monster.Id != 5)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (monster.Id == 5 && task.Count < 2)
+                                                            {
+                                                                task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            else
+                                                            {
+                                                                task.Index++;
+                                                                task.Count = 0;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case 2:
+                                                        {
+                                                            if (monster.Id != 6)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (monster.Id == 6 && task.Count < 2)
+                                                            {
+                                                                task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            else
+                                                            {
+                                                                task.Index++;
+                                                                task.Count = 0;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                }
+                                                break;
+                                            }
+                                        case 1:
+                                            {
+                                                switch (task.Index)
+                                                {
+                                                    case 0:
+                                                        {
+                                                            if (monster.Id != 5)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (monster.Id == 5 && task.Count < 2)
+                                                            {
+                                                                task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            else
+                                                            {
+                                                                task.Index++;
+                                                                task.Count = 0;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case 1:
+                                                        {
+                                                            if (monster.Id != 6)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (monster.Id == 6 && task.Count < 2)
+                                                            {
+                                                                task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            else
+                                                            {
+                                                                task.Index++;
+                                                                task.Count = 0;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case 2:
+                                                        {
+                                                            if (monster.Id != 4)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (monster.Id == 4 && task.Count < 2)
+                                                            {
+                                                                task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            else
+                                                            {
+                                                                task.Index++;
+                                                                task.Count = 0;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                }
+                                                break;
+                                            }
+                                        case 2:
+                                            {
+                                                switch (task.Index)
+                                                {
+                                                    case 0:
+                                                        {
+                                                            if (monster.Id != 6)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (monster.Id == 6 && task.Count < 2)
+                                                            {
+                                                                task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            else
+                                                            {
+                                                                task.Index++;
+                                                                task.Count = 0;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case 1:
+                                                        {
+                                                            if (monster.Id != 4)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (monster.Id == 4 && task.Count < 2)
+                                                            {
+                                                                task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            else
+                                                            {
+                                                                task.Index++;
+                                                                task.Count = 0;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case 2:
+                                                        {
+                                                            if (monster.Id != 5)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (monster.Id == 5 && task.Count < 2)
+                                                            {
+                                                                task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            else
+                                                            {
+                                                                task.Index++;
+                                                                task.Count = 0;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                }
+                                                break;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case 7:
+                                {
+                                    if (task.Index == 1)
+                                    {
+                                        if (monster.Id != 7 + character.InfoChar.Gender)
+                                        {
+                                            break;
+                                        }
+                                        else if (monster.Id == 7 + character.InfoChar.Gender && task.Count < 19)
+                                        {
+                                            task.Count++;
+                                            character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                        }
+                                        else
+                                        {
+                                            task.Index++;
+                                            task.Count = 0;
+                                            character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                        }
+                                    }
+                                    break;
+                                }
+                            case 14:
+                                {
+                                    if (character.Zone.ZoneHandler.GetCharacterClanInMap(character.ClanId).Count < 3)
+                                    {
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        switch (task.Index)
+                                        {
+                                            case 0:
+                                                {
+                                                    if (monster.Id != 16)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (monster.Id == 16 && task.Count < 29)
+                                                    {
+                                                        task.Count++;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    else
+                                                    {
+                                                        task.Index++;
+                                                        task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 1:
+                                                {
+                                                    if (monster.Id != 17)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (monster.Id == 17 && task.Count < 29)
+                                                    {
+                                                        task.Count++;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    else
+                                                    {
+                                                        task.Index++;
+                                                        task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 2:
+                                                {
+                                                    if (monster.Id != 18)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (monster.Id == 18 && task.Count < 29)
+                                                    {
+                                                        task.Count++;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    else
+                                                    {
+                                                        task.Index++;
+                                                        task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                        }
+                                    }
+                                    break;
+                                }
+                            case 16:
+                                {
+                                    if (character.Zone.ZoneHandler.GetCharacterClanInMap(character.ClanId).Count < 3)
+                                    {
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        switch (task.Index)
+                                        {
+                                            case 1:
+                                                {
+                                                    if (monster.Id != 22)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (monster.Id == 22 && task.Count < 29)
+                                                    {
+                                                        task.Count++;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    else
+                                                    {
+                                                        task.Index++;
+                                                        task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 2:
+                                                {
+                                                    if (monster.Id != 23)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (monster.Id == 23 && task.Count < 29)
+                                                    {
+                                                        task.Count++;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    else
+                                                    {
+                                                        task.Index++;
+                                                        task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 3:
+                                                {
+                                                    if (monster.Id != 24)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (monster.Id == 24 && task.Count < 29)
+                                                    {
+                                                        task.Count++;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    else
+                                                    {
+                                                        task.Index++;
+                                                        task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                        }
+                                    }
+                                    break;
+                                }
+                            case 18:
+                                {
+                                    switch (task.Index)
+                                    {
+                                        case 1:
+                                            {
+                                                if (monster.Id != 27)
+                                                {
+                                                    break;
+                                                }
+                                                else if (monster.Id == 27)
+                                                {
+                                                    task.Index++;
+                                                    task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 2:
+                                            {
+                                                if (monster.Id != 25)
+                                                {
+                                                    break;
+                                                }
+                                                else if (monster.Id == 25)
+                                                {
+                                                    task.Index++;
+                                                    task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 3:
+                                            {
+                                                if (monster.Id != 26)
+                                                {
+                                                    break;
+                                                }
+                                                else if (monster.Id == 26)
+                                                {
+                                                    task.Index++;
+                                                    task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case 21:
+                                {
+                                    switch (task.Index)
+                                    {
+                                        case 1:
+                                            {
+                                                if (monster.Id != 39)
+                                                {
+                                                    break;
+                                                }
+                                                else if (monster.Id == 39 && task.Count < 499)
+                                                {
+                                                    task.Count++;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                else
+                                                {
+                                                    task.Index++;
+                                                    task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 2:
+                                            {
+                                                if (monster.Id != 40)
+                                                {
+                                                    break;
+                                                }
+                                                else if (monster.Id == 40 && task.Count < 399)
+                                                {
+                                                    task.Count++;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                else
+                                                {
+                                                    task.Index++;
+                                                    task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 3:
+                                            {
+                                                if (monster.Id != 41)
+                                                {
+                                                    break;
+                                                }
+                                                else if (monster.Id == 41 && task.Count < 299)
+                                                {
+                                                    task.Count++;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                else
+                                                {
+                                                    task.Index++;
+                                                    task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 4:
+                                            {
+                                                if (monster.Id != 42)
+                                                {
+                                                    break;
+                                                }
+                                                else if (monster.Id == 42 && task.Count < 199)
+                                                {
+                                                    task.Count++;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                else
+                                                {
+                                                    task.Index++;
+                                                    task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 5:
+                                            {
+                                                if (monster.Id != 43)
+                                                {
+                                                    break;
+                                                }
+                                                else if (monster.Id == 43 && task.Count < 99)
+                                                {
+                                                    task.Count++;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                else
+                                                {
+                                                    task.Index++;
+                                                    task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case 25:
+                                {
+                                    if (task.Index == 4)
+                                    {
+                                        if (monster.Id != 58)
+                                        {
+                                            break;
+                                        }
+                                        else if (monster.Id == 58 && task.Count < 999)
+                                        {
+                                            task.Count++;
+                                            character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                            if (task.Count % 50 == 0)
+                                            {
+                                                character.CharacterHandler.SendMessage(Service.ServerMessage("Tiến độ: " + task.Count + "/1000 Xên con cấp 1"));
+                                            }
+                                        }
+                                        else
+                                        {
+                                            task.Index++;
+                                            task.Count = 0;
+                                            character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                        }
+                                    }
+                                    break;
+                                }
+                            case 26:
+                                {
+                                    if (task.Index == 3)
+                                    {
+                                        if (monster.Id != 60)
+                                        {
+                                            break;
+                                        }
+                                        if (character.Zone.ZoneHandler.GetCharacterClanInMap(character.ClanId).Count < 3)
+                                        {
+                                            break;
+                                        }
+                                        else if (monster.Id == 60 && task.Count < 899)
+                                        {
+                                            task.Count++;
+                                            character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                        }
+                                        else
+                                        {
+                                            task.Index++;
+                                            task.Count = 0;
+                                            character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                        }
+                                    }
+                                    break;
+                                }
+                            case 28:
+                                {
+                                    if (task.Index == 4)
+                                    {
+                                        if (monster.Id != 62)
+                                        {
+                                            break;
+                                        }
+                                        if (character.Zone.ZoneHandler.GetCharacterClanInMap(character.ClanId).Count < 3)
+                                        {
+                                            break;
+                                        }
+                                        else if (monster.Id == 62 && task.Count < 799)
+                                        {
+                                            task.Count++;
+                                            character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                        }
+                                        else
+                                        {
+                                            task.Index++;
+                                            task.Count = 0;
+                                            character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                        }
+                                    }
+                                    break;
+                                }
+                            case 29:
+                                {
+                                    if (task.Index == 4)
+                                    {
+                                        if (monster.Id != 65)
+                                        {
+                                            break;
+                                        }
+                                        if (character.Zone.ZoneHandler.GetCharacterClanInMap(character.ClanId).Count < 3)
+                                        {
+                                            break;
+                                        }
+                                        else if (monster.Id == 65 && task.Count < 699)
+                                        {
+                                            task.Count++;
+                                            character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                        }
+                                        else
+                                        {
+                                            task.Index++;
+                                            task.Count = 0;
+                                            character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                        }
+                                    }
+                                    break;
+                                }
+                        }
                     }
                 }
             });
@@ -2364,8 +2367,9 @@ namespace NRO_Server.Application.Handlers.Skill
                 var hpPlusMonster = damageMonsterAfterHandle * character.HpPlusFromDamageMonster / 100;
 
                 hpPlus += hpPlusMonster > 0 ? hpPlusMonster : 0;
-                
-                if(hpPlus > 0) {
+
+                if (hpPlus > 0)
+                {
                     character.CharacterHandler.PlusHp(hpPlus);
                     if (character.Id > 0)
                     {
@@ -2374,7 +2378,8 @@ namespace NRO_Server.Application.Handlers.Skill
                     character.CharacterHandler.SendZoneMessage(Service.PlayerLevel(character));
                 }
 
-                if(mpPlus > 0) {
+                if (mpPlus > 0)
+                {
                     character.CharacterHandler.PlusMp(mpPlus);
                     if (character.Id > 0)
                     {
@@ -2390,7 +2395,7 @@ namespace NRO_Server.Application.Handlers.Skill
                 if (skillChar == null) return;
                 if (specialId != -1 && DataCache.SpecialSkillTGHP.Contains(charRel.SpecialSkill.SkillId) && charRel.SpecialSkill.SkillId == skillChar.Id)
                 {
-                    var thoiGianHoiChieu = skillDataTemplate.CoolDown - ((skillDataTemplate.CoolDown*charRel.SpecialSkill.Value)/100);
+                    var thoiGianHoiChieu = skillDataTemplate.CoolDown - ((skillDataTemplate.CoolDown * charRel.SpecialSkill.Value) / 100);
                     skillChar.CoolDown = thoiGianHoiChieu + timeServer;
                     if (skillChar.CoolDown < 0)
                     {
@@ -2410,9 +2415,9 @@ namespace NRO_Server.Application.Handlers.Skill
             try
             {
                 if (character.InfoSkill.TaiTaoNangLuong.IsTTNL) RemoveTTNL(character);
-                
+
                 if (character.InfoChar.IsDie) return;
-                
+
                 if (character.InfoChar.Stamina <= 0)
                 {
                     character.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().NOT_ENOUGH_STAMINA));
@@ -2421,7 +2426,7 @@ namespace NRO_Server.Application.Handlers.Skill
 
                 if (character.InfoChar.CSkill == -1)
                 {
-                    character.InfoChar.CSkill = (short) (character.InfoChar.Gender * 2);
+                    character.InfoChar.CSkill = (short)(character.InfoChar.Gender * 2);
                 }
 
                 var skillChar = character.Skills.FirstOrDefault(skl => skl.Id == character.InfoChar.CSkill);
@@ -2430,7 +2435,7 @@ namespace NRO_Server.Application.Handlers.Skill
                 if (zone == null) return;
 
                 var skillTemplate = Cache.Gi().SKILL_TEMPLATES.FirstOrDefault(skl => skl.Id == skillChar.Id);
-                
+
                 if (skillChar.Id == 11 && !character.InfoSkill.Laze.Hold)
                 {
                     return;
@@ -2448,8 +2453,8 @@ namespace NRO_Server.Application.Handlers.Skill
                 var manaChar = character.InfoChar.Mp;
                 manaUse = manaUseType switch
                 {
-                    1 => manaUse * (int) character.MpFull / 100,
-                    2 => (int) manaChar,
+                    1 => manaUse * (int)character.MpFull / 100,
+                    2 => (int)manaChar,
                     _ => manaUse
                 };
 
@@ -2468,16 +2473,16 @@ namespace NRO_Server.Application.Handlers.Skill
 
                 if (charId > 0)
                 {
-                    if (CharIdIsBoss(charId)) 
+                    if (CharIdIsBoss(charId))
                     {
                         charAtt = zone.ZoneHandler.GetBoss(charId);
                     }
-                    else 
+                    else
                     {
                         charAtt = zone.ZoneHandler.GetCharacter(charId);
                     }
                 }
-                else 
+                else
                 {
                     charAtt = zone.ZoneHandler.GetDisciple(charId);
                 }
@@ -2489,7 +2494,7 @@ namespace NRO_Server.Application.Handlers.Skill
                 {
                     var charNextId = message.Reader.ReadInt();
                     var charNext = zone.ZoneHandler.GetCharacter(charNextId);
-                    if (CharIdIsBoss(charNextId)) 
+                    if (CharIdIsBoss(charNextId))
                     {
                         charNext = zone.ZoneHandler.GetBoss(charNextId);
                     }
@@ -2504,225 +2509,225 @@ namespace NRO_Server.Application.Handlers.Skill
                 //Handling player attack with skill
                 Server.Gi().Logger.Debug($"Client: {character.Player.Session.Id} --------------- AttackPlayer - SkillTemplate: {skillTemplate.Id}");
                 //Check skill
-                
+
                 if (charReal != null && charReal.Flag == 0 && !charReal.Test.IsTest && skillTemplate.Id != 7 && !CharIdIsBoss(charId)) return;
                 switch (skillTemplate.Id)
                 {
                     //Trị thương
                     case 7:
-                    {
-                        if(character.InfoChar.Gender != 1) return;
-                        SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer,skillData.SkillId));
-                        if (charId > 0)
                         {
-                            HandleHealPlayer(character, skillData, listPlayer);
-                        }
-                        else 
-                        {
-                            HandleHealDisciple(character, skillData, listPlayer);
-                        }
-
-                        // Nội tại
-                        if (character.Id > 0 && !CharIdIsBoss(character.Id))
-                        {
-                            var charRel = (Model.Character.Character)character;
-                            var specialId = charRel.SpecialSkill.Id;
-                            if (specialId == 12)
+                            if (character.InfoChar.Gender != 1) return;
+                            SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            if (charId > 0)
                             {
-                                var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown*charRel.SpecialSkill.Value)/100);
-                                skillChar.CoolDown = thoiGianHoiChieu + timeServer;
-                                if (skillChar.CoolDown < 0)
-                                {
-                                    skillChar.CoolDown = 500;
-                                }
-                                character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
+                                HandleHealPlayer(character, skillData, listPlayer);
                             }
+                            else
+                            {
+                                HandleHealDisciple(character, skillData, listPlayer);
+                            }
+
+                            // Nội tại
+                            if (character.Id > 0 && !CharIdIsBoss(character.Id))
+                            {
+                                var charRel = (Model.Character.Character)character;
+                                var specialId = charRel.SpecialSkill.Id;
+                                if (specialId == 12)
+                                {
+                                    var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown * charRel.SpecialSkill.Value) / 100);
+                                    skillChar.CoolDown = thoiGianHoiChieu + timeServer;
+                                    if (skillChar.CoolDown < 0)
+                                    {
+                                        skillChar.CoolDown = 500;
+                                    }
+                                    character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
+                                }
+                            }
+                            break;
                         }
-                        break;
-                    }
                     //Kaioken
                     case 9:
-                    {
-                        if(character.InfoChar.Gender != 0) return;
-                        var hpMine = character.HpFull / 10;
-                        if (hpMine >= character.InfoChar.Hp)
                         {
-                            character.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().NOT_ENOUGH_HP));
-                            return;
+                            if (character.InfoChar.Gender != 0) return;
+                            var hpMine = character.HpFull / 10;
+                            if (hpMine >= character.InfoChar.Hp)
+                            {
+                                character.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().NOT_ENOUGH_HP));
+                                return;
+                            }
+                            character.CharacterHandler.MineHp(hpMine);
+                            character.CharacterHandler.SendMessage(Service.SendHp((int)character.InfoChar.Hp));
+                            zone.ZoneHandler.SendMessage(Service.PlayerLevel(character));
+                            SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer);
+                            break;
                         }
-                        character.CharacterHandler.MineHp(hpMine);
-                        character.CharacterHandler.SendMessage(Service.SendHp((int)character.InfoChar.Hp));
-                        zone.ZoneHandler.SendMessage(Service.PlayerLevel(character));
-                        SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer,skillData.SkillId));
-                        HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer);
-                        break;
-                    }
                     //QCKK
                     case 10:
-                    {
-                        if (character.InfoChar.Gender != 0 || character.InfoSkill.Qckk.Time > timeServer) return;
-                        var damage = ServerUtils.RandomNumber(character.DamageFull * 9 / 10, character.DamageFull);
-                        damage *= (skillData.Damage + character.InfoSkill.Qckk.ListId.Count*10) / 100;
-                        if (character.InfoSet.IsFullSetKirin)
                         {
-                            damage*=2;
-                        }
-                        SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer,skillData.SkillId));
-                        HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer, damage);
-
-                        if (character.Id > 0 && !CharIdIsBoss(character.Id))
-                        {
-                            var charRel = (Model.Character.Character)character;
-                            var specialId = charRel.SpecialSkill.Id;
-                            if (specialId == 3)
+                            if (character.InfoChar.Gender != 0 || character.InfoSkill.Qckk.Time > timeServer) return;
+                            var damage = ServerUtils.RandomNumber(character.DamageFull * 9 / 10, character.DamageFull);
+                            damage *= (skillData.Damage + character.InfoSkill.Qckk.ListId.Count * 10) / 100;
+                            if (character.InfoSet.IsFullSetKirin)
                             {
-                                var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown*charRel.SpecialSkill.Value)/100);
-                                skillChar.CoolDown = thoiGianHoiChieu + timeServer;
-                                if (skillChar.CoolDown < 0)
-                                {
-                                    skillChar.CoolDown = 500;
-                                }
-                                character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
+                                damage *= 2;
                             }
+                            SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer, damage);
+
+                            if (character.Id > 0 && !CharIdIsBoss(character.Id))
+                            {
+                                var charRel = (Model.Character.Character)character;
+                                var specialId = charRel.SpecialSkill.Id;
+                                if (specialId == 3)
+                                {
+                                    var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown * charRel.SpecialSkill.Value) / 100);
+                                    skillChar.CoolDown = thoiGianHoiChieu + timeServer;
+                                    if (skillChar.CoolDown < 0)
+                                    {
+                                        skillChar.CoolDown = 500;
+                                    }
+                                    character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
+                                }
+                            }
+                            break;
                         }
-                        break;
-                    } 
                     //Makankosappo
                     case 11:
-                    {
-                        if(character.InfoChar.Gender != 1 || character.InfoSkill.Laze.Time > timeServer || !character.InfoSkill.Laze.Hold) return;
-                        character.InfoSkill.Laze.Hold = false;
-                        long damage = (long)((long)manaUse*skillData.Damage / 100);
-                        if (character.InfoSet.IsFullSetPicolo)
                         {
-                            damage += damage*50/100;
-                        }
-                        SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
-                        HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer, Math.Abs(((long)damage)));
-
-                        if (character.Id > 0 && !CharIdIsBoss(character.Id))
-                        {
-                            var charRel = (Model.Character.Character)character;
-                            var specialId = charRel.SpecialSkill.Id;
-                            if (specialId == 13)
+                            if (character.InfoChar.Gender != 1 || character.InfoSkill.Laze.Time > timeServer || !character.InfoSkill.Laze.Hold) return;
+                            character.InfoSkill.Laze.Hold = false;
+                            long damage = (long)((long)manaUse * skillData.Damage / 100);
+                            if (character.InfoSet.IsFullSetPicolo)
                             {
-                                var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown*charRel.SpecialSkill.Value)/100);
-                                skillChar.CoolDown = thoiGianHoiChieu + timeServer;
-                                if (skillChar.CoolDown < 0)
-                                {
-                                    skillChar.CoolDown = 500;
-                                }
-                                character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
+                                damage += damage * 50 / 100;
                             }
+                            SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer, Math.Abs(((long)damage)));
+
+                            if (character.Id > 0 && !CharIdIsBoss(character.Id))
+                            {
+                                var charRel = (Model.Character.Character)character;
+                                var specialId = charRel.SpecialSkill.Id;
+                                if (specialId == 13)
+                                {
+                                    var thoiGianHoiChieu = skillData.CoolDown - ((skillData.CoolDown * charRel.SpecialSkill.Value) / 100);
+                                    skillChar.CoolDown = thoiGianHoiChieu + timeServer;
+                                    if (skillChar.CoolDown < 0)
+                                    {
+                                        skillChar.CoolDown = 500;
+                                    }
+                                    character.CharacterHandler.SendMessage(Service.UpdateCooldown(character));
+                                }
+                            }
+                            break;
                         }
-                        break;
-                    }
                     //Biến Sôcôla
                     case 18:
-                    {
-                        if(character.InfoChar.Gender != 1) return;
-                        SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer,skillData.SkillId));
-                        HandleSocolaPlayer(character, listPlayer, skillData);
-
-                        // Kiểm tra có nội tại Sô cô la không
-                        if (character.Id > 0 && !CharIdIsBoss(character.Id))
                         {
-                            var charRel = (Model.Character.Character)character;
-                            var specialId = charRel.SpecialSkill.Id;
-                            if (specialId != -1 && charRel.SpecialSkill.SkillId == 18)
+                            if (character.InfoChar.Gender != 1) return;
+                            SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            HandleSocolaPlayer(character, listPlayer, skillData);
+
+                            // Kiểm tra có nội tại Sô cô la không
+                            if (character.Id > 0 && !CharIdIsBoss(character.Id))
                             {
-                                charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                                var charRel = (Model.Character.Character)character;
+                                var specialId = charRel.SpecialSkill.Id;
+                                if (specialId != -1 && charRel.SpecialSkill.SkillId == 18)
+                                {
+                                    charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                                }
                             }
+                            break;
                         }
-                        break;
-                    }
                     //Dịch chuyển tức thời
                     case 20:
-                    {
-                        if (character.InfoChar.Gender != 0) return;
-                        if (listPlayer[0] != null && CharIdIsBoss(listPlayer[0].Id))
                         {
-                            HandleDichChuyenBoss(character, listPlayer[0], skillData);
-                        }
-                        else
-                        {
-                            HandleDichChuyenPlayer(character, listPlayer, skillData);
-                        }
-                        SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer,skillData.SkillId));
-                        HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer, damage: character.DamageFull, isCrit:true);
-
-                        if (character.Id > 0 && !CharIdIsBoss(character.Id))
-                        {
-                            var charRel = (Model.Character.Character)character;
-                            var specialId = charRel.SpecialSkill.Id;
-                            if (specialId != -1 && charRel.SpecialSkill.SkillId == 20)
+                            if (character.InfoChar.Gender != 0) return;
+                            if (listPlayer[0] != null && CharIdIsBoss(listPlayer[0].Id))
                             {
-                                charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                                HandleDichChuyenBoss(character, listPlayer[0], skillData);
                             }
-                            charReal.SpecialSkill.isCrit = true;
+                            else
+                            {
+                                HandleDichChuyenPlayer(character, listPlayer, skillData);
+                            }
+                            SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer, damage: character.DamageFull, isCrit: true);
+
+                            if (character.Id > 0 && !CharIdIsBoss(character.Id))
+                            {
+                                var charRel = (Model.Character.Character)character;
+                                var specialId = charRel.SpecialSkill.Id;
+                                if (specialId != -1 && charRel.SpecialSkill.SkillId == 20)
+                                {
+                                    charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                                }
+                                charReal.SpecialSkill.isCrit = true;
+                            }
+                            break;
                         }
-                        break;
-                    }
                     //thôi miên
                     case 22:
-                    {
-                        if (character.InfoChar.Gender != 0) return;
-                        SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer,skillData.SkillId));
-                        if (listPlayer[0] != null && CharIdIsBoss(listPlayer[0].Id))
                         {
-                            HandleThoiMienBoss(character, skillData, listPlayer[0]);
-                        }
-                        else
-                        {
-                            HandleThoiMienPlayer(character, skillData, listPlayer);
-                        }
-
-                        if (character.Id > 0 && !CharIdIsBoss(character.Id))
-                        {
-                            var charRel = (Model.Character.Character)character;
-                            var specialId = charRel.SpecialSkill.Id;
-                            if (specialId != -1 && charRel.SpecialSkill.SkillId == 22)
+                            if (character.InfoChar.Gender != 0) return;
+                            SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            if (listPlayer[0] != null && CharIdIsBoss(listPlayer[0].Id))
                             {
-                                charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                                HandleThoiMienBoss(character, skillData, listPlayer[0]);
                             }
+                            else
+                            {
+                                HandleThoiMienPlayer(character, skillData, listPlayer);
+                            }
+
+                            if (character.Id > 0 && !CharIdIsBoss(character.Id))
+                            {
+                                var charRel = (Model.Character.Character)character;
+                                var specialId = charRel.SpecialSkill.Id;
+                                if (specialId != -1 && charRel.SpecialSkill.SkillId == 22)
+                                {
+                                    charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                                }
+                            }
+                            break;
                         }
-                        break;
-                    }
                     //Skill trói xayda
                     case 23:
-                    {
-                        if (character.InfoChar.Gender != 2) return;
-                        SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer,skillData.SkillId));
-                        if (listPlayer[0] != null && CharIdIsBoss(listPlayer[0].Id))
                         {
-                            HandleTroiBoss(character, skillData, listPlayer[0]);
-                        }
-                        else if (listPlayer[0].Id > 0)
-                        {
-                            HandleTroiPlayer(character, skillData, listPlayer);
-                        }
-                        else 
-                        {
-                            // Handle trói dis
-                        }
-
-                        if (character.Id > 0 && !CharIdIsBoss(character.Id))
-                        {
-                            var charRel = (Model.Character.Character)character;
-                            var specialId = charRel.SpecialSkill.Id;
-                            if (specialId != -1 && charRel.SpecialSkill.SkillId == 23)
+                            if (character.InfoChar.Gender != 2) return;
+                            SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            if (listPlayer[0] != null && CharIdIsBoss(listPlayer[0].Id))
                             {
-                                charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                                HandleTroiBoss(character, skillData, listPlayer[0]);
                             }
+                            else if (listPlayer[0].Id > 0)
+                            {
+                                HandleTroiPlayer(character, skillData, listPlayer);
+                            }
+                            else
+                            {
+                                // Handle trói dis
+                            }
+
+                            if (character.Id > 0 && !CharIdIsBoss(character.Id))
+                            {
+                                var charRel = (Model.Character.Character)character;
+                                var specialId = charRel.SpecialSkill.Id;
+                                if (specialId != -1 && charRel.SpecialSkill.SkillId == 23)
+                                {
+                                    charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                                }
+                            }
+                            break;
                         }
-                        break;
-                    }
                     default:
-                    {
-                        SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
-                        HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer);
-                        break;
-                    }
+                        {
+                            SendZoneSkillAttackPlayer(character, Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer);
+                            break;
+                        }
                 }
                 character.CharacterHandler.MineStamina(3);
             }
@@ -2741,9 +2746,9 @@ namespace NRO_Server.Application.Handlers.Skill
             try
             {
                 if (character.InfoSkill.TaiTaoNangLuong.IsTTNL) RemoveTTNL(character);
-                
+
                 if (character.InfoChar.IsDie) return;
-                
+
                 if (character.InfoChar.Stamina <= 0)
                 {
                     character.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().NOT_ENOUGH_STAMINA));
@@ -2767,8 +2772,8 @@ namespace NRO_Server.Application.Handlers.Skill
                 var manaChar = character.InfoChar.Mp;
                 manaUse = manaUseType switch
                 {
-                    1 => manaUse * (int) character.MpFull / 100,
-                    2 => (int) manaChar,
+                    1 => manaUse * (int)character.MpFull / 100,
+                    2 => (int)manaChar,
                     _ => manaUse
                 };
 
@@ -2781,9 +2786,9 @@ namespace NRO_Server.Application.Handlers.Skill
                     {
                         skillChar.CoolDown = 800;
                     }
-                    else 
+                    else
                     {
-                        skillChar.CoolDown = (skillData.CoolDown/2) + timeServer;
+                        skillChar.CoolDown = (skillData.CoolDown / 2) + timeServer;
                     }
                 }
 
@@ -2793,7 +2798,7 @@ namespace NRO_Server.Application.Handlers.Skill
                 var listPlayer = new List<ICharacter>();
 
                 if (charAtt == null || charAtt.InfoChar.IsDie) return;
-                
+
                 listPlayer.Add(charAtt);
                 var fightSize = 1;
                 zone.Characters.Values.Where(c => !c.InfoChar.IsDie && c.Id != character.Id && Math.Abs(c.InfoChar.X - character.InfoChar.X) <= skillData.Dx && Math.Abs(c.InfoChar.Y - character.InfoChar.Y) <= 600).ToList().ForEach(temp =>
@@ -2806,79 +2811,79 @@ namespace NRO_Server.Application.Handlers.Skill
                 });
                 //Handling player attack with skill
                 //Check skill
-                
+
                 switch (skillTemplate.Id)
                 {
                     //Kaioken
                     case 9:
-                    {
-                        var hpMine = character.HpFull / 10;
-                        if (hpMine >= character.InfoChar.Hp)
                         {
-                            character.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().NOT_ENOUGH_HP));
-                            return;
+                            var hpMine = character.HpFull / 10;
+                            if (hpMine >= character.InfoChar.Hp)
+                            {
+                                character.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().NOT_ENOUGH_HP));
+                                return;
+                            }
+                            character.CharacterHandler.MineHp(hpMine);
+                            character.CharacterHandler.SendMessage(Service.SendHp((int)character.InfoChar.Hp));
+                            zone.ZoneHandler.SendMessage(Service.PlayerLevel(character));
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer);
+                            break;
                         }
-                        character.CharacterHandler.MineHp(hpMine);
-                        character.CharacterHandler.SendMessage(Service.SendHp((int)character.InfoChar.Hp));
-                        zone.ZoneHandler.SendMessage(Service.PlayerLevel(character));
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer,skillData.SkillId));
-                        HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer);
-                        break;
-                    }
                     //QCKK
                     case 10:
-                    {
-                        if (character.InfoSkill.Qckk.Time > timeServer) return;
-                        var damage = ServerUtils.RandomNumber(character.DamageFull * 9 / 10, character.DamageFull);
-                        damage *= (skillData.Damage + character.InfoSkill.Qckk.ListId.Count*10) / 100;
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer,skillData.SkillId));
-                        HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer, damage);
-                        break;
-                    } 
+                        {
+                            if (character.InfoSkill.Qckk.Time > timeServer) return;
+                            var damage = ServerUtils.RandomNumber(character.DamageFull * 9 / 10, character.DamageFull);
+                            damage *= (skillData.Damage + character.InfoSkill.Qckk.ListId.Count * 10) / 100;
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer, damage);
+                            break;
+                        }
                     //Makankosappo
                     case 11:
-                    {
-                        if(character.InfoSkill.Laze.Time > timeServer) return;
-                        long damage = (long)((long)manaUse*skillData.Damage / 100);
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer,skillData.SkillId));
-                        HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer, Math.Abs(((long)damage)));
-                        break;
-                    }
+                        {
+                            if (character.InfoSkill.Laze.Time > timeServer) return;
+                            long damage = (long)((long)manaUse * skillData.Damage / 100);
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer, Math.Abs(((long)damage)));
+                            break;
+                        }
                     //Biến Sôcôla
                     case 18:
-                    {
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer,skillData.SkillId));
-                        HandleSocolaPlayer(character, listPlayer, skillData);
-                        break;
-                    }
+                        {
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            HandleSocolaPlayer(character, listPlayer, skillData);
+                            break;
+                        }
                     //Dịch chuyển tức thời
                     case 20:
-                    {
-                        HandleDichChuyenPlayer(character, listPlayer, skillData);
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer,skillData.SkillId));
-                        HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer, character.DamageFull,isCrit:true);
-                        break;
-                    }
+                        {
+                            HandleDichChuyenPlayer(character, listPlayer, skillData);
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer, character.DamageFull, isCrit: true);
+                            break;
+                        }
                     //thôi miên
                     case 22:
-                    {
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer,skillData.SkillId));
-                        HandleThoiMienPlayer(character, skillData, listPlayer);
-                        break;
-                    }
+                        {
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            HandleThoiMienPlayer(character, skillData, listPlayer);
+                            break;
+                        }
                     //Skill trói xayda
                     case 23:
-                    {
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer,skillData.SkillId));
-                        HandleTroiPlayer(character, skillData, listPlayer);
-                        break;
-                    }
+                        {
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            HandleTroiPlayer(character, skillData, listPlayer);
+                            break;
+                        }
                     default:
-                    {
-                        zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
-                        HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer);
-                        break;
-                    }
+                        {
+                            zone.ZoneHandler.SendMessage(Service.PlayerAttackPlayer(character.Id, listPlayer, skillData.SkillId));
+                            HandlePlayerAttackPlayer(character, skillChar, skillData, listPlayer);
+                            break;
+                        }
                 }
                 character.CharacterHandler.MineStamina(3);
             }
@@ -2893,17 +2898,17 @@ namespace NRO_Server.Application.Handlers.Skill
             var player = characters.FirstOrDefault(c => c != null && !c.InfoChar.IsDie &&
                                                         Math.Abs(character.InfoChar.X - c.InfoChar.X) <= skillDataTemplate.Dx
                                                         && Math.Abs(character.InfoChar.Y - c.InfoChar.Y) <= skillDataTemplate.Dy);
-            if(player == null) return;
+            if (player == null) return;
 
             if (!CharIdIsBoss(player.Id) && !CharIdIsBoss(character.Id)) //Nếu ko phải là boss, là người thì kiểm tra
             {
                 if (player.Id > 0)
                 {
-                    var targetReal = (Model.Character.Character) player;
-                    if(targetReal.Test != null && targetReal.Test.IsTest && targetReal.Test.TestCharacterId != character.Id) return;
+                    var targetReal = (Model.Character.Character)player;
+                    if (targetReal.Test != null && targetReal.Test.IsTest && targetReal.Test.TestCharacterId != character.Id) return;
                 }
-                if(player.InfoChar.TypePk == 0 && player.Flag == 0) return;
-                if(player.Flag != 0 && player.Flag != 8 && player.Flag == character.Flag) return;
+                if (player.InfoChar.TypePk == 0 && player.Flag == 0) return;
+                if (player.Flag != 0 && player.Flag != 8 && player.Flag == character.Flag) return;
             }
 
             var timeServer = ServerUtils.CurrentTimeMillis();
@@ -2911,19 +2916,19 @@ namespace NRO_Server.Application.Handlers.Skill
             {
                 if (damage == 0)
                 {
-					
+
                     damage = ServerUtils.RandomNumber(character.DamageFull * 9 / 10, character.DamageFull);
-                    damage = damage*skillDataTemplate.Damage / 100;
+                    damage = damage * skillDataTemplate.Damage / 100;
                     // Nội tại các chiêu đấm
                     if (character.Id > 0 && !CharIdIsBoss(character.Id))
                     {
-                        
+
                         if (skillChar == null) return;
                         var charRel = (Model.Character.Character)character;
                         var specialId = charRel.SpecialSkill.Id;
                         if (specialId != -1 && DataCache.SpecialSkillTSD.Contains(charRel.SpecialSkill.SkillId) && charRel.SpecialSkill.SkillId == skillChar.Id)
                         {
-                            damage += damage*charRel.SpecialSkill.Value/100;
+                            damage += damage * charRel.SpecialSkill.Value / 100;
                         }
 
                         if (skillChar.Id == 1 && character.InfoSet.IsFullSetSongoku)
@@ -2950,7 +2955,7 @@ namespace NRO_Server.Application.Handlers.Skill
                 {
                     damage = 0;
                 }
-                else 
+                else
                 {
                     damage -= player.DefenceFull;
                 }
@@ -2962,12 +2967,12 @@ namespace NRO_Server.Application.Handlers.Skill
 
                 if (PhanTramXuyenGiapChuong > 0 && DataCache.SkillIdChuong.Contains(skillDataTemplate.SkillId))
                 {
-                    damage += player.DefenceFull*PhanTramXuyenGiapChuong/100;
+                    damage += player.DefenceFull * PhanTramXuyenGiapChuong / 100;
                 }
                 else if (PhanTramXuyenGiapCanChien > 0 && DataCache.SkillIdCanChien.Contains(skillDataTemplate.SkillId))
                 {
-                    damage += player.DefenceFull*PhanTramXuyenGiapCanChien/100;
-                } 
+                    damage += player.DefenceFull * PhanTramXuyenGiapCanChien / 100;
+                }
 
                 // 
 
@@ -2979,7 +2984,7 @@ namespace NRO_Server.Application.Handlers.Skill
                     {
                         damage = 0;
                     }
-                    else 
+                    else
                     {
                         damage -= reduceDamage;
                     }
@@ -2996,7 +3001,7 @@ namespace NRO_Server.Application.Handlers.Skill
                     isCrit = true;
                 }
 
-                if(player.InfoSkill.PlayerTroi.IsPlayerTroi && player.InfoSkill.PlayerTroi.TimeTroi > timeServer && DataCache.SpecialSkillTSD.Contains(skillChar.Id))
+                if (player.InfoSkill.PlayerTroi.IsPlayerTroi && player.InfoSkill.PlayerTroi.TimeTroi > timeServer && DataCache.SpecialSkillTSD.Contains(skillChar.Id))
                 {
                     isCrit = true;
                 }
@@ -3008,7 +3013,7 @@ namespace NRO_Server.Application.Handlers.Skill
                     var specialId = charRel.SpecialSkill.Id;
                     if (charRel.SpecialSkill.nextAttackDmgPercent > 0)
                     {
-                        damage += damage*charRel.SpecialSkill.nextAttackDmgPercent/100;
+                        damage += damage * charRel.SpecialSkill.nextAttackDmgPercent / 100;
                         charRel.SpecialSkill.nextAttackDmgPercent = 0;
                     }
                     // Nội tại chí mạng liên tục
@@ -3016,12 +3021,12 @@ namespace NRO_Server.Application.Handlers.Skill
                     {
                         var hpFull = character.HpFull;
                         var hpNow = character.InfoChar.Hp;
-                        var percentHp = 100 - ((int)((hpFull- hpNow)*100/character.HpFull));
+                        var percentHp = 100 - ((int)((hpFull - hpNow) * 100 / character.HpFull));
                         if (percentHp <= charRel.SpecialSkill.Value)
                         {
                             isCrit = true;
                         }
-                        else 
+                        else
                         {
                             isCrit = false;
                         }
@@ -3049,19 +3054,21 @@ namespace NRO_Server.Application.Handlers.Skill
                 {
                     if (character.InfoSkill.Socola.IsSocola)
                     {
-                        var reduceDamage = damage*character.InfoSkill.Socola.Percent/100;
+                        var reduceDamage = damage * character.InfoSkill.Socola.Percent / 100;
                         if (damage <= reduceDamage)
                         {
                             damage = 0;
                         }
-                        else 
+                        else
                         {
                             damage -= reduceDamage;
                         }
                     }
 
-                    if(player.InfoSkill.Protect.IsProtect) {
-                        if(player.HpFull < damage){
+                    if (player.InfoSkill.Protect.IsProtect)
+                    {
+                        if (player.HpFull < damage)
+                        {
                             player.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().DROP_PROTECT));
                             RemoveProtect(player);
                             player.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeProtect[0], 0));
@@ -3087,13 +3094,13 @@ namespace NRO_Server.Application.Handlers.Skill
                 // Giáp xên
                 if (damage > 0 && player.Id > 0 && !CharIdIsBoss(player.Id) && ((Model.Character.Character)player).InfoBuff.GiapXen)
                 {
-                    damage -= (damage*50/100);
+                    damage -= (damage * 50 / 100);
                 }
                 // Last dmg boss
                 var thodaik = false;
                 if (CharIdIsBoss(player.Id) && character != null)
                 {
-                    var bossReal = (Boss) player;
+                    var bossReal = (Boss)player;
                     if (!bossReal.CharacterAttack.Contains(character.Id) && !character.InfoSkill.Socola.IsSocola)
                     {
                         bossReal.CharacterAttack.Add(character.Id);
@@ -3108,13 +3115,13 @@ namespace NRO_Server.Application.Handlers.Skill
                 player.CharacterHandler.MineHp(damage);
                 player.CharacterHandler.SendZoneMessage(Service.PlayerLevel(player));
                 character.CharacterHandler.SendZoneMessage(Service.HaveAttackPlayer(player, isCrit, damage, -1));
-                
+
                 // Xử lý phản phần trăm sát thương
                 int phanTramPhanSatThuong = player.InfoOption.PhanPercentSatThuong;
 
                 if (damage > 0 && phanTramPhanSatThuong > 0 && !thodaik)
                 {
-                    long phanDamage = damage*phanTramPhanSatThuong/100;
+                    long phanDamage = damage * phanTramPhanSatThuong / 100;
                     character.CharacterHandler.MineHp(phanDamage);
                     character.CharacterHandler.SendZoneMessage(Service.PlayerLevel(character));
                     player.CharacterHandler.SendZoneMessage(Service.HaveAttackPlayer(character, false, phanDamage, -1));
@@ -3122,20 +3129,22 @@ namespace NRO_Server.Application.Handlers.Skill
 
                 var hpPlus = damage * character.HpPlusFromDamage / 100;
                 var mpPlus = damage * character.MpPlusFromDamage / 100;
-                if(hpPlus > 0) {
+                if (hpPlus > 0)
+                {
                     character.CharacterHandler.PlusHp((int)hpPlus);
                     character.CharacterHandler.SendMessage(Service.SendHp((int)character.InfoChar.Hp));
                     character.CharacterHandler.SendZoneMessage(Service.PlayerLevel(character));
                 }
 
-                if(mpPlus > 0) {
+                if (mpPlus > 0)
+                {
                     character.CharacterHandler.PlusMp((int)mpPlus);
                     character.CharacterHandler.SendMessage(Service.SendMp((int)character.InfoChar.Mp));
                 }
 
                 //Monster Pet
                 var pet = character.InfoSkill.Egg.Monster;
-                if (pet is {IsDie: false} && !player.InfoChar.IsDie && !thodaik)
+                if (pet is { IsDie: false } && !player.InfoChar.IsDie && !thodaik)
                 {
                     pet.MonsterHandler.PetAttackPlayer(player);
                 }
@@ -3145,476 +3154,476 @@ namespace NRO_Server.Application.Handlers.Skill
                     //giết boss
                     if (player != null && CharIdIsBoss(player.Id))
                     {
-                        var bossReal = (Boss) player;
+                        var bossReal = (Boss)player;
                         bossReal.KillerId = character.Id;
                         player.CharacterHandler.LeaveItem(character);
                         player.CharacterHandler.SendDie();
-						switch(character.InfoChar.Task.Id)
-						{
-							case 22:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 0:
-									{
-										if(bossReal.Type != DataCache.BOSS_KUKU_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_KUKU_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 1:
-									{
-										if(bossReal.Type != DataCache.BOSS_MDD_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_MDD_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 2:
-									{
-										if(bossReal.Type != DataCache.BOSS_RAMBO_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_RAMBO_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 23:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 0:
-									{
-										if(bossReal.Type != DataCache.BOSS_SO4_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_SO4_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 1:
-									{
-										if(bossReal.Type != DataCache.BOSS_SO3_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_SO3_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 2:
-									{
-										if(bossReal.Type != DataCache.BOSS_SO1_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_SO1_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 3:
-									{
-										if(bossReal.Type != DataCache.BOSS_TDT_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_TDT_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 24:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 0:
-									{
-										if(bossReal.Type != DataCache.BOSS_FIDE_01_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_FIDE_01_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 1:
-									{
-										if(bossReal.Type != DataCache.BOSS_FIDE_02_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_FIDE_02_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 2:
-									{
-										if(bossReal.Type != DataCache.BOSS_FIDE_03_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_FIDE_03_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 26:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 1:
-									{
-										if(bossReal.Type != DataCache.BOSS_ANDROID_19_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_ANDROID_19_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 2:
-									{
-										if(bossReal.Type != DataCache.BOSS_ANDROID_20_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_ANDROID_20_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 27:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 1:
-									{
-										if(bossReal.Type != DataCache.BOSS_ANDROID_15_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_ANDROID_15_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 2:
-									{
-										if(bossReal.Type != DataCache.BOSS_ANDROID_14_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_ANDROID_14_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 3:
-									{
-										if(bossReal.Type != DataCache.BOSS_ANDROID_13_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_ANDROID_13_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 28:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 1:
-									{
-										if(bossReal.Type != DataCache.BOSS_PIC_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_PIC_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 2:
-									{
-										if(bossReal.Type != DataCache.BOSS_POC_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_POC_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 3:
-									{
-										if(bossReal.Type != DataCache.BOSS_KINGKONG_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_KINGKONG_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 29:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 1:
-									{
-										if(bossReal.Type != DataCache.BOSS_XEN_01_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_XEN_01_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 2:
-									{
-										if(bossReal.Type != DataCache.BOSS_XEN_02_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_XEN_02_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 3:
-									{
-										if(bossReal.Type != DataCache.BOSS_XEN_HT_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_XEN_HT_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 30:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 3:
-									{
-										switch(character.InfoChar.Task.Count)
-										{
-											case 0:
-											{
-												if(bossReal.Type != DataCache.BOSS_XEN_CON_01_TYPE)
-												{
-													break;
-												}
-												else if(bossReal.Type == DataCache.BOSS_XEN_CON_01_TYPE)
-												{
-													character.InfoChar.Task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 1:
-											{
-												if(bossReal.Type != DataCache.BOSS_XEN_CON_02_TYPE)
-												{
-													break;
-												}
-												else if(bossReal.Type == DataCache.BOSS_XEN_CON_02_TYPE)
-												{
-													character.InfoChar.Task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 2:
-											{
-												if(bossReal.Type != DataCache.BOSS_XEN_CON_03_TYPE)
-												{
-													break;
-												}
-												else if(bossReal.Type == DataCache.BOSS_XEN_CON_03_TYPE)
-												{
-													character.InfoChar.Task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 3:
-											{
-												if(bossReal.Type != DataCache.BOSS_XEN_CON_04_TYPE)
-												{
-													break;
-												}
-												else if(bossReal.Type == DataCache.BOSS_XEN_CON_04_TYPE)
-												{
-													character.InfoChar.Task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 4:
-											{
-												if(bossReal.Type != DataCache.BOSS_XEN_CON_05_TYPE)
-												{
-													break;
-												}
-												else if(bossReal.Type == DataCache.BOSS_XEN_CON_05_TYPE)
-												{
-													character.InfoChar.Task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 5:
-											{
-												if(bossReal.Type != DataCache.BOSS_XEN_CON_06_TYPE)
-												{
-													break;
-												}
-												else if(bossReal.Type == DataCache.BOSS_XEN_CON_06_TYPE)
-												{
-													character.InfoChar.Task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 6:
-											{
-												if(bossReal.Type != DataCache.BOSS_XEN_CON_07_TYPE)
-												{
-													break;
-												}
-												else if(bossReal.Type == DataCache.BOSS_XEN_CON_07_TYPE)
-												{
-													character.InfoChar.Task.Index++;
-													character.InfoChar.Task.Count = 0;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-										}
-										break;
-									}
-									case 4:
-									{
-										if(bossReal.Type != DataCache.BOSS_SBH_TYPE)
-										{
-											break;
-										}
-										else if(bossReal.Type == DataCache.BOSS_SBH_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-						}
+                        switch (character.InfoChar.Task.Id)
+                        {
+                            case 22:
+                                {
+                                    switch (character.InfoChar.Task.Index)
+                                    {
+                                        case 0:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_KUKU_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_KUKU_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 1:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_MDD_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_MDD_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 2:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_RAMBO_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_RAMBO_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case 23:
+                                {
+                                    switch (character.InfoChar.Task.Index)
+                                    {
+                                        case 0:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_SO4_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_SO4_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 1:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_SO3_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_SO3_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 2:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_SO1_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_SO1_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 3:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_TDT_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_TDT_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case 24:
+                                {
+                                    switch (character.InfoChar.Task.Index)
+                                    {
+                                        case 0:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_FIDE_01_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_FIDE_01_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 1:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_FIDE_02_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_FIDE_02_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 2:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_FIDE_03_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_FIDE_03_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case 26:
+                                {
+                                    switch (character.InfoChar.Task.Index)
+                                    {
+                                        case 1:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_ANDROID_19_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_ANDROID_19_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 2:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_ANDROID_20_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_ANDROID_20_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case 27:
+                                {
+                                    switch (character.InfoChar.Task.Index)
+                                    {
+                                        case 1:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_ANDROID_15_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_ANDROID_15_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 2:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_ANDROID_14_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_ANDROID_14_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 3:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_ANDROID_13_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_ANDROID_13_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case 28:
+                                {
+                                    switch (character.InfoChar.Task.Index)
+                                    {
+                                        case 1:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_PIC_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_PIC_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 2:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_POC_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_POC_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 3:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_KINGKONG_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_KINGKONG_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case 29:
+                                {
+                                    switch (character.InfoChar.Task.Index)
+                                    {
+                                        case 1:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_XEN_01_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_XEN_01_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 2:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_XEN_02_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_XEN_02_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                        case 3:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_XEN_HT_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_XEN_HT_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case 30:
+                                {
+                                    switch (character.InfoChar.Task.Index)
+                                    {
+                                        case 3:
+                                            {
+                                                switch (character.InfoChar.Task.Count)
+                                                {
+                                                    case 0:
+                                                        {
+                                                            if (bossReal.Type != DataCache.BOSS_XEN_CON_01_TYPE)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (bossReal.Type == DataCache.BOSS_XEN_CON_01_TYPE)
+                                                            {
+                                                                character.InfoChar.Task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case 1:
+                                                        {
+                                                            if (bossReal.Type != DataCache.BOSS_XEN_CON_02_TYPE)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (bossReal.Type == DataCache.BOSS_XEN_CON_02_TYPE)
+                                                            {
+                                                                character.InfoChar.Task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case 2:
+                                                        {
+                                                            if (bossReal.Type != DataCache.BOSS_XEN_CON_03_TYPE)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (bossReal.Type == DataCache.BOSS_XEN_CON_03_TYPE)
+                                                            {
+                                                                character.InfoChar.Task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case 3:
+                                                        {
+                                                            if (bossReal.Type != DataCache.BOSS_XEN_CON_04_TYPE)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (bossReal.Type == DataCache.BOSS_XEN_CON_04_TYPE)
+                                                            {
+                                                                character.InfoChar.Task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case 4:
+                                                        {
+                                                            if (bossReal.Type != DataCache.BOSS_XEN_CON_05_TYPE)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (bossReal.Type == DataCache.BOSS_XEN_CON_05_TYPE)
+                                                            {
+                                                                character.InfoChar.Task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case 5:
+                                                        {
+                                                            if (bossReal.Type != DataCache.BOSS_XEN_CON_06_TYPE)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (bossReal.Type == DataCache.BOSS_XEN_CON_06_TYPE)
+                                                            {
+                                                                character.InfoChar.Task.Count++;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case 6:
+                                                        {
+                                                            if (bossReal.Type != DataCache.BOSS_XEN_CON_07_TYPE)
+                                                            {
+                                                                break;
+                                                            }
+                                                            else if (bossReal.Type == DataCache.BOSS_XEN_CON_07_TYPE)
+                                                            {
+                                                                character.InfoChar.Task.Index++;
+                                                                character.InfoChar.Task.Count = 0;
+                                                                character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                            }
+                                                            break;
+                                                        }
+                                                }
+                                                break;
+                                            }
+                                        case 4:
+                                            {
+                                                if (bossReal.Type != DataCache.BOSS_SBH_TYPE)
+                                                {
+                                                    break;
+                                                }
+                                                else if (bossReal.Type == DataCache.BOSS_SBH_TYPE)
+                                                {
+                                                    character.InfoChar.Task.Index++;
+                                                    character.InfoChar.Task.Count = 0;
+                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                }
+                                                break;
+                                            }
+                                    }
+                                    break;
+                                }
+                        }
                     }
                     // Bị boss giết, hoặc 
                     else if (player != null && character != null && CharIdIsBoss(character.Id))
@@ -3658,7 +3667,7 @@ namespace NRO_Server.Application.Handlers.Skill
                     if (skillChar == null) return;
                     if (specialId != -1 && DataCache.SpecialSkillTGHP.Contains(charRel.SpecialSkill.SkillId) && charRel.SpecialSkill.SkillId == skillChar.Id)
                     {
-                        var thoiGianHoiChieu = skillDataTemplate.CoolDown - ((skillDataTemplate.CoolDown*charRel.SpecialSkill.Value)/100);
+                        var thoiGianHoiChieu = skillDataTemplate.CoolDown - ((skillDataTemplate.CoolDown * charRel.SpecialSkill.Value) / 100);
                         skillChar.CoolDown = thoiGianHoiChieu + timeServer;
                         if (skillChar.CoolDown < 0)
                         {
@@ -3689,7 +3698,7 @@ namespace NRO_Server.Application.Handlers.Skill
 
         public static void RemoveHuytSao(ICharacter character)
         {
-            
+
             character.InfoSkill.HuytSao.IsHuytSao = false;
             character.InfoSkill.HuytSao.Time = -1;
             character.InfoSkill.HuytSao.Percent = 0;
@@ -3704,12 +3713,12 @@ namespace NRO_Server.Application.Handlers.Skill
 
         public static void RemoveTroi(ICharacter character)
         {
-            if(character == null) return;
+            if (character == null) return;
             if (character.InfoSkill.MeTroi.Monster != null)
             {
                 character.InfoSkill.MeTroi.Monster?.MonsterHandler.RemoveTroi(character.Id);
             }
-            else 
+            else
             {
                 character.InfoSkill.MeTroi.Character?.CharacterHandler.RemoveTroi(character.Id);
             }
@@ -3743,7 +3752,7 @@ namespace NRO_Server.Application.Handlers.Skill
             character.InfoSkill.ThoiMien.IsThoiMien = false;
             character.InfoSkill.ThoiMien.Time = -1;
         }
-        
+
         public static void RemoveSocola(ICharacter character)
         {
             character.InfoSkill.Socola.IsSocola = false;
@@ -3766,9 +3775,9 @@ namespace NRO_Server.Application.Handlers.Skill
         #region Handle Skill
         public static void HandleMonkey(ICharacter character, bool isMonkey)
         {
-            try 
+            try
             {
-                if(character.InfoSkill.Socola.IsSocola) return;
+                if (character.InfoSkill.Socola.IsSocola) return;
                 if (isMonkey)
                 {
                     character.InfoSkill.Monkey.MonkeyId = 1;
@@ -3777,10 +3786,10 @@ namespace NRO_Server.Application.Handlers.Skill
                     character.InfoSkill.Monkey.TimeMonkey = DataCache.SkillMonkeys.FirstOrDefault(m => m.Id == character.InfoSkill.Monkey.HeadMonkey)!.Time + ServerUtils.CurrentTimeMillis();
                     character.InfoSkill.Monkey.Damage = DataCache.SkillMonkeys.FirstOrDefault(m => m.Id == character.InfoSkill.Monkey.HeadMonkey)!.Damage;
                     character.InfoSkill.Monkey.Hp = DataCache.SkillMonkeys.FirstOrDefault(m => m.Id == character.InfoSkill.Monkey.HeadMonkey)!.Hp;
-                    
+
                     if (character.InfoSet.IsFullSetCadic)
                     {
-                        character.InfoSkill.Monkey.TimeMonkey *=4;
+                        character.InfoSkill.Monkey.TimeMonkey *= 4;
                     }
                 }
                 else
@@ -3813,7 +3822,7 @@ namespace NRO_Server.Application.Handlers.Skill
         public static void HandleTuSat(ICharacter character, SkillCharacter skillChar, SkillDataTemplate skillDataTemplate)
         {
             var zone = character.Zone;
-            if(zone == null || character.InfoSkill.TuSat.Delay > 0 && character.InfoSkill.TuSat.Delay > ServerUtils.CurrentTimeMillis() || character.InfoSkill.Socola.IsSocola) return;
+            if (zone == null || character.InfoSkill.TuSat.Delay > 0 && character.InfoSkill.TuSat.Delay > ServerUtils.CurrentTimeMillis() || character.InfoSkill.Socola.IsSocola) return;
             long damage = (long)((character.InfoChar.Hp) * character.InfoSkill.TuSat.Damage / 100);
 
             if (character.InfoSkill.Socola.IsSocola)
@@ -3822,14 +3831,15 @@ namespace NRO_Server.Application.Handlers.Skill
                 if (damage <= reduceDamage)
                 {
                     damage = 0;
-                } else 
+                }
+                else
                 {
                     damage -= reduceDamage;
                 }
             }
 
             //Attack monster
-            zone.MonsterMaps.Where(monster => monster is {IsDie: false}).ToList().ForEach(monsterMap =>
+            zone.MonsterMaps.Where(monster => monster is { IsDie: false }).ToList().ForEach(monsterMap =>
             {
                 lock (monsterMap)
                 {
@@ -3845,7 +3855,7 @@ namespace NRO_Server.Application.Handlers.Skill
                     {
                         damageMonster -= damageMonster * character.InfoSkill.ThoiMien.Percent / 100;
                     }
-                
+
                     if (ServerUtils.RandomNumber(100) < 15)
                     {
                         damageMonster = 0;
@@ -3862,7 +3872,7 @@ namespace NRO_Server.Application.Handlers.Skill
                 }
             });
 
-            zone.MonsterPets.Values.Where(monster => monster is {IsDie: false}).ToList().ForEach(pet =>
+            zone.MonsterPets.Values.Where(monster => monster is { IsDie: false }).ToList().ForEach(pet =>
             {
                 lock (pet)
                 {
@@ -3875,12 +3885,12 @@ namespace NRO_Server.Application.Handlers.Skill
             // Không biến khỉ 50%
             if (character.InfoSkill.Monkey.MonkeyId == 0)
             {
-                damage = (long)(damage*0.5);
+                damage = (long)(damage * 0.5);
             }
-            else 
+            else
             {
                 // Biển khỉ 30% 
-                damage = (long)(damage*0.3);
+                damage = (long)(damage * 0.3);
             }
 
             // Attack Boss
@@ -3891,7 +3901,7 @@ namespace NRO_Server.Application.Handlers.Skill
                     var damagerReal = damage;
                     if (temp.Type == DataCache.BOSS_THO_PHE_CO_TYPE) damage = 1;
                     //Check test
-                    if(Math.Abs(temp.InfoChar.X - character.InfoChar.X) <= 900)
+                    if (Math.Abs(temp.InfoChar.X - character.InfoChar.X) <= 900)
                     {
                         var damageChar = damagerReal;
 
@@ -3922,478 +3932,478 @@ namespace NRO_Server.Application.Handlers.Skill
                         {
                             temp.CharacterHandler.SendDie();
                             temp.CharacterHandler.LeaveItem(character);
-							switch(character.InfoChar.Task.Id)
-						{
-							case 22:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 0:
-									{
-										if(temp.Type != DataCache.BOSS_KUKU_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_KUKU_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 1:
-									{
-										if(temp.Type != DataCache.BOSS_MDD_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_MDD_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 2:
-									{
-										if(temp.Type != DataCache.BOSS_RAMBO_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_RAMBO_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 23:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 0:
-									{
-										if(temp.Type != DataCache.BOSS_SO4_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_SO4_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 1:
-									{
-										if(temp.Type != DataCache.BOSS_SO3_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_SO3_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 2:
-									{
-										if(temp.Type != DataCache.BOSS_SO1_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_SO1_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 3:
-									{
-										if(temp.Type != DataCache.BOSS_TDT_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_TDT_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 24:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 0:
-									{
-										if(temp.Type != DataCache.BOSS_FIDE_01_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_FIDE_01_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 1:
-									{
-										if(temp.Type != DataCache.BOSS_FIDE_02_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_FIDE_02_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 2:
-									{
-										if(temp.Type != DataCache.BOSS_FIDE_03_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_FIDE_03_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 26:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 1:
-									{
-										if(temp.Type != DataCache.BOSS_ANDROID_19_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_ANDROID_19_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 2:
-									{
-										if(temp.Type != DataCache.BOSS_ANDROID_20_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_ANDROID_20_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 27:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 1:
-									{
-										if(temp.Type != DataCache.BOSS_ANDROID_15_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_ANDROID_15_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 2:
-									{
-										if(temp.Type != DataCache.BOSS_ANDROID_14_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_ANDROID_14_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 3:
-									{
-										if(temp.Type != DataCache.BOSS_ANDROID_13_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_ANDROID_13_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 28:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 1:
-									{
-										if(temp.Type != DataCache.BOSS_PIC_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_PIC_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 2:
-									{
-										if(temp.Type != DataCache.BOSS_POC_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_POC_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 3:
-									{
-										if(temp.Type != DataCache.BOSS_KINGKONG_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_KINGKONG_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 29:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 1:
-									{
-										if(temp.Type != DataCache.BOSS_XEN_01_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_XEN_01_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 2:
-									{
-										if(temp.Type != DataCache.BOSS_XEN_02_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_XEN_02_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-									case 3:
-									{
-										if(temp.Type != DataCache.BOSS_XEN_HT_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_XEN_HT_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-							case 30:
-							{
-								switch(character.InfoChar.Task.Index)
-								{
-									case 3:
-									{
-										switch(character.InfoChar.Task.Count)
-										{
-											case 0:
-											{
-												if(temp.Type != DataCache.BOSS_XEN_CON_01_TYPE)
-												{
-													break;
-												}
-												else if(temp.Type == DataCache.BOSS_XEN_CON_01_TYPE)
-												{
-													character.InfoChar.Task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 1:
-											{
-												if(temp.Type != DataCache.BOSS_XEN_CON_02_TYPE)
-												{
-													break;
-												}
-												else if(temp.Type == DataCache.BOSS_XEN_CON_02_TYPE)
-												{
-													character.InfoChar.Task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 2:
-											{
-												if(temp.Type != DataCache.BOSS_XEN_CON_03_TYPE)
-												{
-													break;
-												}
-												else if(temp.Type == DataCache.BOSS_XEN_CON_03_TYPE)
-												{
-													character.InfoChar.Task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 3:
-											{
-												if(temp.Type != DataCache.BOSS_XEN_CON_04_TYPE)
-												{
-													break;
-												}
-												else if(temp.Type == DataCache.BOSS_XEN_CON_04_TYPE)
-												{
-													character.InfoChar.Task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 4:
-											{
-												if(temp.Type != DataCache.BOSS_XEN_CON_05_TYPE)
-												{
-													break;
-												}
-												else if(temp.Type == DataCache.BOSS_XEN_CON_05_TYPE)
-												{
-													character.InfoChar.Task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 5:
-											{
-												if(temp.Type != DataCache.BOSS_XEN_CON_06_TYPE)
-												{
-													break;
-												}
-												else if(temp.Type == DataCache.BOSS_XEN_CON_06_TYPE)
-												{
-													character.InfoChar.Task.Count++;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-											case 6:
-											{
-												if(temp.Type != DataCache.BOSS_XEN_CON_07_TYPE)
-												{
-													break;
-												}
-												else if(temp.Type == DataCache.BOSS_XEN_CON_07_TYPE)
-												{
-													character.InfoChar.Task.Index++;
-													character.InfoChar.Task.Count = 0;
-													character.CharacterHandler.SendMessage(Service.SendTask(character));
-												}
-												break;
-											}
-										}
-										break;
-									}
-									case 4:
-									{
-										if(temp.Type != DataCache.BOSS_SBH_TYPE)
-										{
-											break;
-										}
-										else if(temp.Type == DataCache.BOSS_SBH_TYPE)
-										{
-											character.InfoChar.Task.Index++;
-											character.InfoChar.Task.Count = 0;
-											character.CharacterHandler.SendMessage(Service.SendTask(character));
-										}
-										break;
-									}
-								}
-								break;
-							}
-						}
+                            switch (character.InfoChar.Task.Id)
+                            {
+                                case 22:
+                                    {
+                                        switch (character.InfoChar.Task.Index)
+                                        {
+                                            case 0:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_KUKU_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_KUKU_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 1:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_MDD_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_MDD_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 2:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_RAMBO_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_RAMBO_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                        }
+                                        break;
+                                    }
+                                case 23:
+                                    {
+                                        switch (character.InfoChar.Task.Index)
+                                        {
+                                            case 0:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_SO4_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_SO4_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 1:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_SO3_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_SO3_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 2:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_SO1_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_SO1_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 3:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_TDT_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_TDT_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                        }
+                                        break;
+                                    }
+                                case 24:
+                                    {
+                                        switch (character.InfoChar.Task.Index)
+                                        {
+                                            case 0:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_FIDE_01_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_FIDE_01_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 1:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_FIDE_02_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_FIDE_02_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 2:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_FIDE_03_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_FIDE_03_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                        }
+                                        break;
+                                    }
+                                case 26:
+                                    {
+                                        switch (character.InfoChar.Task.Index)
+                                        {
+                                            case 1:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_ANDROID_19_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_ANDROID_19_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 2:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_ANDROID_20_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_ANDROID_20_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                        }
+                                        break;
+                                    }
+                                case 27:
+                                    {
+                                        switch (character.InfoChar.Task.Index)
+                                        {
+                                            case 1:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_ANDROID_15_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_ANDROID_15_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 2:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_ANDROID_14_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_ANDROID_14_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 3:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_ANDROID_13_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_ANDROID_13_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                        }
+                                        break;
+                                    }
+                                case 28:
+                                    {
+                                        switch (character.InfoChar.Task.Index)
+                                        {
+                                            case 1:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_PIC_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_PIC_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 2:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_POC_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_POC_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 3:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_KINGKONG_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_KINGKONG_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                        }
+                                        break;
+                                    }
+                                case 29:
+                                    {
+                                        switch (character.InfoChar.Task.Index)
+                                        {
+                                            case 1:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_XEN_01_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_XEN_01_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 2:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_XEN_02_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_XEN_02_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                            case 3:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_XEN_HT_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_XEN_HT_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                        }
+                                        break;
+                                    }
+                                case 30:
+                                    {
+                                        switch (character.InfoChar.Task.Index)
+                                        {
+                                            case 3:
+                                                {
+                                                    switch (character.InfoChar.Task.Count)
+                                                    {
+                                                        case 0:
+                                                            {
+                                                                if (temp.Type != DataCache.BOSS_XEN_CON_01_TYPE)
+                                                                {
+                                                                    break;
+                                                                }
+                                                                else if (temp.Type == DataCache.BOSS_XEN_CON_01_TYPE)
+                                                                {
+                                                                    character.InfoChar.Task.Count++;
+                                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                                }
+                                                                break;
+                                                            }
+                                                        case 1:
+                                                            {
+                                                                if (temp.Type != DataCache.BOSS_XEN_CON_02_TYPE)
+                                                                {
+                                                                    break;
+                                                                }
+                                                                else if (temp.Type == DataCache.BOSS_XEN_CON_02_TYPE)
+                                                                {
+                                                                    character.InfoChar.Task.Count++;
+                                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                                }
+                                                                break;
+                                                            }
+                                                        case 2:
+                                                            {
+                                                                if (temp.Type != DataCache.BOSS_XEN_CON_03_TYPE)
+                                                                {
+                                                                    break;
+                                                                }
+                                                                else if (temp.Type == DataCache.BOSS_XEN_CON_03_TYPE)
+                                                                {
+                                                                    character.InfoChar.Task.Count++;
+                                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                                }
+                                                                break;
+                                                            }
+                                                        case 3:
+                                                            {
+                                                                if (temp.Type != DataCache.BOSS_XEN_CON_04_TYPE)
+                                                                {
+                                                                    break;
+                                                                }
+                                                                else if (temp.Type == DataCache.BOSS_XEN_CON_04_TYPE)
+                                                                {
+                                                                    character.InfoChar.Task.Count++;
+                                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                                }
+                                                                break;
+                                                            }
+                                                        case 4:
+                                                            {
+                                                                if (temp.Type != DataCache.BOSS_XEN_CON_05_TYPE)
+                                                                {
+                                                                    break;
+                                                                }
+                                                                else if (temp.Type == DataCache.BOSS_XEN_CON_05_TYPE)
+                                                                {
+                                                                    character.InfoChar.Task.Count++;
+                                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                                }
+                                                                break;
+                                                            }
+                                                        case 5:
+                                                            {
+                                                                if (temp.Type != DataCache.BOSS_XEN_CON_06_TYPE)
+                                                                {
+                                                                    break;
+                                                                }
+                                                                else if (temp.Type == DataCache.BOSS_XEN_CON_06_TYPE)
+                                                                {
+                                                                    character.InfoChar.Task.Count++;
+                                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                                }
+                                                                break;
+                                                            }
+                                                        case 6:
+                                                            {
+                                                                if (temp.Type != DataCache.BOSS_XEN_CON_07_TYPE)
+                                                                {
+                                                                    break;
+                                                                }
+                                                                else if (temp.Type == DataCache.BOSS_XEN_CON_07_TYPE)
+                                                                {
+                                                                    character.InfoChar.Task.Index++;
+                                                                    character.InfoChar.Task.Count = 0;
+                                                                    character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                                }
+                                                                break;
+                                                            }
+                                                    }
+                                                    break;
+                                                }
+                                            case 4:
+                                                {
+                                                    if (temp.Type != DataCache.BOSS_SBH_TYPE)
+                                                    {
+                                                        break;
+                                                    }
+                                                    else if (temp.Type == DataCache.BOSS_SBH_TYPE)
+                                                    {
+                                                        character.InfoChar.Task.Index++;
+                                                        character.InfoChar.Task.Count = 0;
+                                                        character.CharacterHandler.SendMessage(Service.SendTask(character));
+                                                    }
+                                                    break;
+                                                }
+                                        }
+                                        break;
+                                    }
+                            }
                         }
 
                         if (!((Boss)temp).CharacterAttack.Contains(character.Id))
                         {
                             ((Boss)temp).CharacterAttack.Add(character.Id);
-							
+
                         }
                     }
                 }
@@ -4405,8 +4415,8 @@ namespace NRO_Server.Application.Handlers.Skill
                 lock (temp)
                 {
                     var damagerReal = damage;
-                    var real = (Model.Character.Character) character;
-                    var c = (Model.Character.Character) temp;
+                    var real = (Model.Character.Character)character;
+                    var c = (Model.Character.Character)temp;
                     //Check test
                     if (c.Test.IsTest && c.Test.TestCharacterId == character.Id && real.Test.IsTest &&
                         real.Test.TestCharacterId == c.Id)
@@ -4433,7 +4443,7 @@ namespace NRO_Server.Application.Handlers.Skill
                         // Bổ Huyết
                         if (damageChar > 0 && c.InfoBuff.GiapXen)
                         {
-                            damageChar -= (damageChar*50/100);
+                            damageChar -= (damageChar * 50 / 100);
                         }
 
                         temp.CharacterHandler.MineHp(damageChar);
@@ -4441,9 +4451,9 @@ namespace NRO_Server.Application.Handlers.Skill
                         temp.CharacterHandler.SendZoneMessage(Service.PlayerLevel(temp));
                         if (temp.InfoChar.IsDie)
                         {
-                            c.PlusGold(c.Test.GoldTest*95/100);
+                            c.PlusGold(c.Test.GoldTest * 95 / 100);
                             c.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().DRAW_TEST));
-                            real.PlusGold(real.Test.GoldTest*95/100);
+                            real.PlusGold(real.Test.GoldTest * 95 / 100);
                             real.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().DRAW_TEST));
                             temp.CharacterHandler.SendDie();
                             if (c.Enemies.FirstOrDefault(cg => cg.Id == real.Id) == null && !real.InfoBuff.AnDanh)
@@ -4457,13 +4467,13 @@ namespace NRO_Server.Application.Handlers.Skill
                         }
                         else
                         {
-                            c.PlusGold(c.Test.GoldTest*190/100);
+                            c.PlusGold(c.Test.GoldTest * 190 / 100);
                             c.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().WON_TEST));
                             c.CharacterHandler.ClearTest();
                             real.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().LOST_TEST1));
                         }
                     }
-                    else if(Math.Abs(temp.InfoChar.X - character.InfoChar.X) <= 900)
+                    else if (Math.Abs(temp.InfoChar.X - character.InfoChar.X) <= 900)
                     {
                         var damageChar = damagerReal;
                         if (character.Flag == 0 || temp.Flag == 0 || temp.Flag == character.Flag && character.Flag != 8)
@@ -4493,7 +4503,7 @@ namespace NRO_Server.Application.Handlers.Skill
                         // Bổ Huyết
                         if (damageChar > 0 && c.InfoBuff.GiapXen)
                         {
-                            damageChar -= (damageChar*50/100);
+                            damageChar -= (damageChar * 50 / 100);
                         }
 
                         temp.CharacterHandler.MineHp(damageChar);
@@ -4528,7 +4538,7 @@ namespace NRO_Server.Application.Handlers.Skill
                 {
                     if (skillChar == null) return;
                     var timeServer = ServerUtils.CurrentTimeMillis();
-                    var thoiGianHoiChieu = skillDataTemplate.CoolDown - ((skillDataTemplate.CoolDown*charRel.SpecialSkill.Value)/100);
+                    var thoiGianHoiChieu = skillDataTemplate.CoolDown - ((skillDataTemplate.CoolDown * charRel.SpecialSkill.Value) / 100);
                     skillChar.CoolDown = thoiGianHoiChieu + timeServer;
                     if (skillChar.CoolDown < 0)
                     {
@@ -4546,8 +4556,8 @@ namespace NRO_Server.Application.Handlers.Skill
             try
             {
                 var monster = monsters[0];
-                if(monster == null) return;
-                if(Math.Abs(character.InfoChar.X - monster.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - monster.Y) > skillData.Dy) return;
+                if (monster == null) return;
+                if (Math.Abs(character.InfoChar.X - monster.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - monster.Y) > skillData.Dy) return;
                 lock (monster)
                 {
                     var timeUse = DataCache.TimeTroi[skillData.Point];
@@ -4587,8 +4597,8 @@ namespace NRO_Server.Application.Handlers.Skill
             try
             {
                 var monster = monsters[0];
-                if(monster == null) return;
-                if(Math.Abs(character.InfoChar.X - monster.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - monster.Y) > skillData.Dy) return;
+                if (monster == null) return;
+                if (Math.Abs(character.InfoChar.X - monster.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - monster.Y) > skillData.Dy) return;
                 lock (monster)
                 {
                     var timeUse = DataCache.TimeThoiMien[skillData.Point];
@@ -4601,7 +4611,7 @@ namespace NRO_Server.Application.Handlers.Skill
                         monster.InfoSkill.ThoiMien.IsThoiMien = true;
                         monster.InfoSkill.ThoiMien.Time = timeLong;
                         monster.InfoSkill.ThoiMien.TimePercent = -1;
-                        monster.InfoSkill.ThoiMien.Percent = skillData.Damage*5;
+                        monster.InfoSkill.ThoiMien.Percent = skillData.Damage * 5;
                     }
 
                     character.Zone.ZoneHandler.SendMessage(Service.MonsterDontMove(monster.IdMap, true));
@@ -4620,8 +4630,8 @@ namespace NRO_Server.Application.Handlers.Skill
             try
             {
                 var monster = monsters[0];
-                if(monster == null) return;
-                if(Math.Abs(character.InfoChar.X - monster.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - monster.Y) > skillData.Dy) return;
+                if (monster == null) return;
+                if (Math.Abs(character.InfoChar.X - monster.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - monster.Y) > skillData.Dy) return;
                 lock (monster)
                 {
                     var timeUse = 30000 + ServerUtils.CurrentTimeMillis();
@@ -4649,8 +4659,8 @@ namespace NRO_Server.Application.Handlers.Skill
             try
             {
                 var monster = monsters[0];
-                if(monster == null) return;
-                if(Math.Abs(character.InfoChar.X - monster.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - monster.Y) > skillData.Dy) return;
+                if (monster == null) return;
+                if (Math.Abs(character.InfoChar.X - monster.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - monster.Y) > skillData.Dy) return;
                 lock (monster)
                 {
                     var timeUse = DataCache.TimeDichChuyen[skillData.Point];
@@ -4684,16 +4694,16 @@ namespace NRO_Server.Application.Handlers.Skill
             try
             {
                 var player = (Model.Character.Character)characters[0];
-                if(player == null || player.InfoChar.IsDie) return;
-                if(Math.Abs(character.InfoChar.X - player.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - player.InfoChar.Y) > skillData.Dy || character.InfoSkill.Socola.IsSocola) return;
+                if (player == null || player.InfoChar.IsDie) return;
+                if (Math.Abs(character.InfoChar.X - player.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - player.InfoChar.Y) > skillData.Dy || character.InfoSkill.Socola.IsSocola) return;
 
-                if (!CharIdIsBoss(character.Id)) 
+                if (!CharIdIsBoss(character.Id))
                 {
-                    if(player.Test.IsTest && player.Test.TestCharacterId != character.Id) return;
-                    if(player.InfoChar.TypePk == 0 && player.Flag == 0) return;
-                    if(player.Flag != 0 && player.Flag != 8 && player.Flag == character.Flag) return;
+                    if (player.Test.IsTest && player.Test.TestCharacterId != character.Id) return;
+                    if (player.InfoChar.TypePk == 0 && player.Flag == 0) return;
+                    if (player.Flag != 0 && player.Flag != 8 && player.Flag == character.Flag) return;
                 }
-                
+
                 lock (player)
                 {
                     var timeUse = DataCache.TimeThoiMien[skillData.Point];
@@ -4705,9 +4715,9 @@ namespace NRO_Server.Application.Handlers.Skill
                         player.InfoSkill.ThoiMien.IsThoiMien = true;
                         player.InfoSkill.ThoiMien.Time = timeLong;
                         player.InfoSkill.ThoiMien.TimePercent = -1;
-                        player.InfoSkill.ThoiMien.Percent = skillData.Damage*5;
+                        player.InfoSkill.ThoiMien.Percent = skillData.Damage * 5;
                     }
-                    player.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeThoiMien[0], timeUse/10));
+                    player.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeThoiMien[0], timeUse / 10));
                     character.Zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, player.Id, 1, 41));
                 }
             }
@@ -4721,16 +4731,16 @@ namespace NRO_Server.Application.Handlers.Skill
             try
             {
                 var player = (Model.Character.Character)characters[0];
-                if(player == null || player.InfoChar.IsDie) return;
-                if(Math.Abs(character.InfoChar.X - player.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - player.InfoChar.Y) > skillData.Dy || character.InfoSkill.Socola.IsSocola) return;
-                
-                if (!CharIdIsBoss(character.Id)) 
+                if (player == null || player.InfoChar.IsDie) return;
+                if (Math.Abs(character.InfoChar.X - player.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - player.InfoChar.Y) > skillData.Dy || character.InfoSkill.Socola.IsSocola) return;
+
+                if (!CharIdIsBoss(character.Id))
                 {
-                    if(player.Test.IsTest && player.Test.TestCharacterId != character.Id) return;
-                    if(player.InfoChar.TypePk == 0 && player.Flag == 0) return;
-                    if(player.Flag != 0 && player.Flag != 8 && player.Flag == character.Flag) return;
+                    if (player.Test.IsTest && player.Test.TestCharacterId != character.Id) return;
+                    if (player.InfoChar.TypePk == 0 && player.Flag == 0) return;
+                    if (player.Flag != 0 && player.Flag != 8 && player.Flag == character.Flag) return;
                 }
-                
+
                 lock (player)
                 {
                     var timeUse = DataCache.TimeDichChuyen[skillData.Point];
@@ -4758,16 +4768,16 @@ namespace NRO_Server.Application.Handlers.Skill
             try
             {
                 var player = (Model.Character.Character)players[0];
-                if(player == null || player.InfoChar.IsDie) return;
-                if(Math.Abs(character.InfoChar.X - player.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - player.InfoChar.Y) > skillData.Dy || character.InfoSkill.Socola.IsSocola) return;
-                
-                if (!CharIdIsBoss(character.Id)) 
+                if (player == null || player.InfoChar.IsDie) return;
+                if (Math.Abs(character.InfoChar.X - player.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - player.InfoChar.Y) > skillData.Dy || character.InfoSkill.Socola.IsSocola) return;
+
+                if (!CharIdIsBoss(character.Id))
                 {
-                    if(player.Test.IsTest && player.Test.TestCharacterId != character.Id) return;
-                    if(player.InfoChar.TypePk == 0 && player.Flag == 0) return;
-                    if(player.Flag != 0 && player.Flag != 8 && player.Flag == character.Flag) return;
+                    if (player.Test.IsTest && player.Test.TestCharacterId != character.Id) return;
+                    if (player.InfoChar.TypePk == 0 && player.Flag == 0) return;
+                    if (player.Flag != 0 && player.Flag != 8 && player.Flag == character.Flag) return;
                 }
-                
+
                 lock (player)
                 {
                     if (player.InfoSkill.TaiTaoNangLuong.IsTTNL)
@@ -4786,9 +4796,9 @@ namespace NRO_Server.Application.Handlers.Skill
                         {
                             player.InfoSkill.PlayerTroi.PlayerId.Add(character.Id);
                         }
-                        
+
                     }
-                    player.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeTroi[0], timeUse/10));
+                    player.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeTroi[0], timeUse / 10));
 
                     //Setup char skill
                     character.InfoSkill.MeTroi.IsMeTroi = true;
@@ -4810,18 +4820,18 @@ namespace NRO_Server.Application.Handlers.Skill
         {
             try
             {
-                if(CharIdIsBoss(characters[0].Id)) return;
+                if (CharIdIsBoss(characters[0].Id)) return;
                 var player = (Model.Character.Character)characters[0];
-                if(player == null) return;
-                if(Math.Abs(character.InfoChar.X - player.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - player.InfoChar.Y) > skillData.Dy || character.InfoSkill.Socola.IsSocola) return;
-                
-                if (!CharIdIsBoss(character.Id)) 
+                if (player == null) return;
+                if (Math.Abs(character.InfoChar.X - player.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - player.InfoChar.Y) > skillData.Dy || character.InfoSkill.Socola.IsSocola) return;
+
+                if (!CharIdIsBoss(character.Id))
                 {
-                    if(player.Test.IsTest && player.Test.TestCharacterId != character.Id) return;
-                    if(player.InfoChar.TypePk == 0 && player.Flag == 0) return;
-                    if(player.Flag != 0 && player.Flag != 8 && player.Flag == character.Flag) return;
+                    if (player.Test.IsTest && player.Test.TestCharacterId != character.Id) return;
+                    if (player.InfoChar.TypePk == 0 && player.Flag == 0) return;
+                    if (player.Flag != 0 && player.Flag != 8 && player.Flag == character.Flag) return;
                 }
-                
+
                 lock (player)
                 {
                     var timeUse = 30000 + ServerUtils.CurrentTimeMillis();
@@ -4832,11 +4842,11 @@ namespace NRO_Server.Application.Handlers.Skill
                         player.InfoSkill.Socola.IsSocola = true;
                         player.InfoSkill.Socola.Time = timeUse;
                         player.InfoSkill.Socola.CharacterId = character.Id;
-                        player.InfoSkill.Socola.Fight = ServerUtils.RandomNumber(2,4);
+                        player.InfoSkill.Socola.Fight = ServerUtils.RandomNumber(2, 4);
                         player.InfoSkill.Socola.Percent = skillData.Damage;
                         if (CharIdIsBoss(character.Id))
                         {
-                            var bossReal = (Boss) character;
+                            var bossReal = (Boss)character;
                             if (bossReal.Type == DataCache.BOSS_THO_PHE_CO_TYPE)
                             {
                                 player.InfoSkill.Socola.Time += 90000;
@@ -4849,7 +4859,7 @@ namespace NRO_Server.Application.Handlers.Skill
                     {
                         player.CharacterHandler.SendMessage(Service.ItemTime(4076, 120));
                     }
-                    else 
+                    else
                     {
                         player.CharacterHandler.SendMessage(Service.ItemTime(3780, 30));
                     }
@@ -4865,10 +4875,10 @@ namespace NRO_Server.Application.Handlers.Skill
         {
             try
             {
-                if(CharIdIsBoss(players[0].Id)) return;
+                if (CharIdIsBoss(players[0].Id)) return;
                 var player = (Model.Character.Character)players[0];
-                if(player == null) return;
-                if(Math.Abs(character.InfoChar.X - player.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - player.InfoChar.Y) > skillData.Dy) 
+                if (player == null) return;
+                if (Math.Abs(character.InfoChar.X - player.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - player.InfoChar.Y) > skillData.Dy)
                 {
                     if (player.InfoChar.X > character.InfoChar.X)
                     {
@@ -4882,10 +4892,10 @@ namespace NRO_Server.Application.Handlers.Skill
                     character.InfoChar.Y = player.InfoChar.Y;
                     character.CharacterHandler.MoveMap(character.InfoChar.X, character.InfoChar.Y);
                     character.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().SO_FAR_SKILL));
-                     return;
+                    return;
                 }
-                if(player.Test.IsTest && player.Test.TestCharacterId != character.Id) return;
-                if(player.InfoChar.TypePk == 3 || player.Flag == 8) return;
+                if (player.Test.IsTest && player.Test.TestCharacterId != character.Id) return;
+                if (player.InfoChar.TypePk == 3 || player.Flag == 8) return;
                 if (player.InfoChar.Hp == player.HpFull && player.InfoChar.Mp == player.MpFull)
                 {
                     character.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().DO_NOT_HEAL_FOR_ORTHER));
@@ -4931,8 +4941,8 @@ namespace NRO_Server.Application.Handlers.Skill
             try
             {
                 var disciple = (Model.Character.Disciple)players[0];
-                if(disciple == null) return;
-                if(Math.Abs(character.InfoChar.X - disciple.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - disciple.InfoChar.Y) > skillData.Dy) 
+                if (disciple == null) return;
+                if (Math.Abs(character.InfoChar.X - disciple.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - disciple.InfoChar.Y) > skillData.Dy)
                 {
                     if (disciple.InfoChar.X > character.InfoChar.X)
                     {
@@ -4945,10 +4955,10 @@ namespace NRO_Server.Application.Handlers.Skill
 
                     character.InfoChar.Y = disciple.InfoChar.Y;
                     character.CharacterHandler.MoveMap(character.InfoChar.X, character.InfoChar.Y);
-                     character.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().SO_FAR_SKILL));
-                     return;
+                    character.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().SO_FAR_SKILL));
+                    return;
                 }
-                if(disciple.InfoChar.TypePk == 3 || disciple.Flag == 8) return;
+                if (disciple.InfoChar.TypePk == 3 || disciple.Flag == 8) return;
                 if (disciple.InfoChar.Hp == disciple.HpFull && disciple.InfoChar.Mp == disciple.MpFull)
                 {
                     character.CharacterHandler.SendMessage(Service.ServerMessage(TextServer.gI().DO_NOT_HEAL_FOR_ORTHER));
@@ -4999,8 +5009,8 @@ namespace NRO_Server.Application.Handlers.Skill
             try
             {
                 var boss = (Model.Character.Boss)iboss;
-                if(boss == null || boss.InfoChar.IsDie) return;
-                if(Math.Abs(character.InfoChar.X - boss.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - boss.InfoChar.Y) > skillData.Dy) return;
+                if (boss == null || boss.InfoChar.IsDie) return;
+                if (Math.Abs(character.InfoChar.X - boss.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - boss.InfoChar.Y) > skillData.Dy) return;
                 lock (boss)
                 {
                     var timeUse = DataCache.TimeThoiMien[skillData.Point];
@@ -5010,11 +5020,11 @@ namespace NRO_Server.Application.Handlers.Skill
                     lock (boss.InfoSkill.ThoiMien)
                     {
                         boss.InfoSkill.ThoiMien.IsThoiMien = true;
-                        boss.InfoSkill.ThoiMien.Time = timeLong/2;
+                        boss.InfoSkill.ThoiMien.Time = timeLong / 2;
                         boss.InfoSkill.ThoiMien.TimePercent = -1;
-                        boss.InfoSkill.ThoiMien.Percent = skillData.Damage*5;
+                        boss.InfoSkill.ThoiMien.Percent = skillData.Damage * 5;
                     }
-                    boss.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeThoiMien[0], timeUse/10));
+                    boss.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeThoiMien[0], timeUse / 10));
                     character.Zone.ZoneHandler.SendMessage(Service.SkillEffectPlayer(character.Id, boss.Id, 1, 41));
                 }
             }
@@ -5029,9 +5039,9 @@ namespace NRO_Server.Application.Handlers.Skill
             try
             {
                 var boss = (Model.Character.Boss)iboss;
-                if(boss == null || boss.InfoChar.IsDie) return;
-                if(Math.Abs(character.InfoChar.X - boss.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - boss.InfoChar.Y) > skillData.Dy) return;
-                
+                if (boss == null || boss.InfoChar.IsDie) return;
+                if (Math.Abs(character.InfoChar.X - boss.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - boss.InfoChar.Y) > skillData.Dy) return;
+
                 lock (boss)
                 {
                     var timeUse = DataCache.TimeDichChuyen[skillData.Point];
@@ -5041,7 +5051,7 @@ namespace NRO_Server.Application.Handlers.Skill
                     lock (boss.InfoSkill.DichChuyen)
                     {
                         boss.InfoSkill.DichChuyen.IsStun = true;
-                        boss.InfoSkill.DichChuyen.Time = timeLong/2;
+                        boss.InfoSkill.DichChuyen.Time = timeLong / 2;
                     }
                     character.InfoChar.X = boss.InfoChar.X;
                     character.InfoChar.Y = boss.InfoChar.Y;
@@ -5060,9 +5070,9 @@ namespace NRO_Server.Application.Handlers.Skill
             try
             {
                 var boss = (Model.Character.Boss)iboss;
-                if(boss == null || boss.InfoChar.IsDie || boss.KhangTroi) return;
-                if(Math.Abs(character.InfoChar.X - boss.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - boss.InfoChar.Y) > skillData.Dy) return;
-                
+                if (boss == null || boss.InfoChar.IsDie || boss.KhangTroi) return;
+                if (Math.Abs(character.InfoChar.X - boss.InfoChar.X) > skillData.Dx || Math.Abs(character.InfoChar.Y - boss.InfoChar.Y) > skillData.Dy) return;
+
                 lock (boss)
                 {
                     if (boss.InfoSkill.TaiTaoNangLuong.IsTTNL)
@@ -5081,9 +5091,9 @@ namespace NRO_Server.Application.Handlers.Skill
                         {
                             boss.InfoSkill.PlayerTroi.PlayerId.Add(character.Id);
                         }
-                        
+
                     }
-                    boss.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeTroi[0], timeUse/10));
+                    boss.CharacterHandler.SendMessage(Service.ItemTime(DataCache.TimeTroi[0], timeUse / 10));
 
                     //Setup char skill
                     character.InfoSkill.MeTroi.IsMeTroi = true;
@@ -5123,20 +5133,20 @@ namespace NRO_Server.Application.Handlers.Skill
                     case 5://Antomic
                     case 13://biến hình
                     case 17://liên hoàn
-                    {
-                        skillData.Damage += skillData.Damage*charRel.SpecialSkill.Value/100;
-                        break;
-                    }
-                    case 6://Thái dương hạ san
-                    {
-                        skillData.ManaUse += charRel.SpecialSkill.Value;
-                        skillData.CoolDown -= skillData.CoolDown*charRel.SpecialSkill.Value/100;
-                        if (skillData.CoolDown < 0)
                         {
-                            skillData.CoolDown = 500;
+                            skillData.Damage += skillData.Damage * charRel.SpecialSkill.Value / 100;
+                            break;
                         }
-                        break;
-                    }
+                    case 6://Thái dương hạ san
+                        {
+                            skillData.ManaUse += charRel.SpecialSkill.Value;
+                            skillData.CoolDown -= skillData.CoolDown * charRel.SpecialSkill.Value / 100;
+                            if (skillData.CoolDown < 0)
+                            {
+                                skillData.CoolDown = 500;
+                            }
+                            break;
+                        }
                     case 7://Trị thương
                     case 11://Makanko
                     case 12://Đẻ trứng
@@ -5144,28 +5154,28 @@ namespace NRO_Server.Application.Handlers.Skill
                     case 10://QCKK
                     case 19://Khiên năng lượng
                     case 21://Huýt sáo
-                    {
-                        skillData.CoolDown -= skillData.CoolDown*charRel.SpecialSkill.Value/100;
-                        if (skillData.CoolDown < 0)
                         {
-                            skillData.CoolDown = 500;
+                            skillData.CoolDown -= skillData.CoolDown * charRel.SpecialSkill.Value / 100;
+                            if (skillData.CoolDown < 0)
+                            {
+                                skillData.CoolDown = 500;
+                            }
+                            break;
                         }
-                        break;
-                    }
                     case 18://biến sô cô la
                     case 20://Dịch chuyển tức thời
                     case 22://Thôi miên
                     case 23://trói
-                    {
-                        charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
-                        break;
-                    }
+                        {
+                            charRel.SpecialSkill.nextAttackDmgPercent = charRel.SpecialSkill.Value;
+                            break;
+                        }
                 }
             }
 
             if (charRel.SpecialSkill.nextAttackDmgPercent > 0)
             {
-                skillData.Damage += skillData.Damage*charRel.SpecialSkill.nextAttackDmgPercent/100;
+                skillData.Damage += skillData.Damage * charRel.SpecialSkill.nextAttackDmgPercent / 100;
                 charRel.SpecialSkill.nextAttackDmgPercent = 0;
             }
 
@@ -5173,12 +5183,12 @@ namespace NRO_Server.Application.Handlers.Skill
             {
                 var hpFull = character.HpFull;
                 var hpNow = character.InfoChar.Hp;
-                var percentHp = 100 - ((int)((hpFull- hpNow)*100/character.HpFull));
+                var percentHp = 100 - ((int)((hpFull - hpNow) * 100 / character.HpFull));
                 if (percentHp <= charRel.SpecialSkill.Value)
                 {
                     charRel.SpecialSkill.isCrit = true;
                 }
-                else 
+                else
                 {
                     charRel.SpecialSkill.isCrit = false;
                 }
@@ -5191,7 +5201,7 @@ namespace NRO_Server.Application.Handlers.Skill
         #region Send Message Attack
         private static void SendZoneSkillAttackPlayer(ICharacter character, Message message)
         {
-            try 
+            try
             {
                 var timeServer = ServerUtils.CurrentTimeMillis();
                 var charReal = (Model.Character.Character)character;
@@ -5199,7 +5209,7 @@ namespace NRO_Server.Application.Handlers.Skill
                 if (zone == null) return;
                 if (charReal.Delay.DelaySkillZone < timeServer)
                 {
-                    zone.ZoneHandler.SendMessage(message, isSkillMessage:true);
+                    zone.ZoneHandler.SendMessage(message, isSkillMessage: true);
                     charReal.Delay.DelaySkillZone = 1000 + timeServer;
                 }
             }
@@ -5207,8 +5217,8 @@ namespace NRO_Server.Application.Handlers.Skill
             {
                 Server.Gi().Logger.Error($"Error SendZoneSkillAttackPlayer in SkillHandler.cs: {e.Message} \n {e.StackTrace}", e);
             }
-            
-        } 
+
+        }
         #endregion
     }
 }
